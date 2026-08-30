@@ -224,3 +224,26 @@ pending / fulfilled / rejected
 extraReducers
    ↓
 isLoading + user + isAuthenticated
+
+# what we want
+
+for example, later we'll have pages like:
+
+/profile
+/my-tickets
+/create-event
+
+some of these should require login.
+
+so we want a reusable ProtectedRoute:
+
+user tries /my-tickets
+        ↓
+   are they logged in?
+      ↙       ↘
+    yes        no
+     ↓          ↓
+show page    /login
+
+and Redux will be the thing we check:
+isAuthenticated

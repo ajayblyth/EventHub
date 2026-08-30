@@ -7,7 +7,11 @@ export function authorize(...allowedRoles: string[]) {
       return next(new AppError("Not authenticated", 401));
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const hasAllowedRole = req.user.roles.some((role) =>
+      allowedRoles.includes(role)
+    );
+
+    if (!hasAllowedRole) {
       return next(new AppError("Access denied", 403));
     }
 

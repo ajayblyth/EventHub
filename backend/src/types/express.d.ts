@@ -2,11 +2,11 @@
 // It is mainly used to describe/extend types, not to contain normal executable application code.
 
 
-import type { JwtPayload } from "jsonwebtoken"; //JwtPayload is the TypeScript type representing a decoded JWT payload.
+import type { JwtPayload } from "jsonwebtoken";
 
 export interface AuthUser extends JwtPayload {
   userId: string;
-  role: string;
+  roles: string[];
 }
 
 declare global {

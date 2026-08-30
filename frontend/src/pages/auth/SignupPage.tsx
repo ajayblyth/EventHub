@@ -61,6 +61,7 @@ function SignupPage() {
 try {
   const { confirmPassword, ...registrationData } = result.data;
 
+  
   const response = await registerUser(registrationData);
 
   setSuccessMessage(response.message);

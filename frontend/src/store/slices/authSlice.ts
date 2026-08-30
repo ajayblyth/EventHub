@@ -11,8 +11,7 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: "attendee" | "organizer";
-  isVerified: boolean;
+roles: ("attendee" | "organizer")[];  isVerified: boolean;
   profileImage: string | null;
   phone: string | null;
   companyName: string | null;

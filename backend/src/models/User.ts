@@ -33,11 +33,11 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-    role: {
-      type: String,
-      enum: ["attendee", "organizer"],
-      default: "attendee",
-    },
+  roles: {
+  type: [String],
+  enum: ["attendee", "organizer"],
+  default: ["attendee"],
+},
 
     isVerified: {
       type: Boolean,

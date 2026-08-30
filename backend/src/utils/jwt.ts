@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";  //gives jwt.sign() jwt.verify()
 
-export function generateAccessToken(userId: string, role: string) {
+export function generateAccessToken(
+  userId: string,
+  roles: string[]
+) {
   const secret = process.env.JWT_ACCESS_SECRET;
 
   if (!secret) {
@@ -10,7 +13,7 @@ export function generateAccessToken(userId: string, role: string) {
   return jwt.sign(
     {
       userId,
-      role,
+      roles,
     },
     secret,
     {
@@ -18,7 +21,6 @@ export function generateAccessToken(userId: string, role: string) {
     }
   );
 }
-
 export function generateRefreshToken(userId: string) {
   const secret = process.env.JWT_REFRESH_SECRET;
 

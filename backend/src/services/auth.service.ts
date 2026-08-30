@@ -11,20 +11,17 @@ import {
 
 import jwt from "jsonwebtoken";
 
-
 export async function registerUser(data: {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
-  role: "attendee" | "organizer";
+  roles?: ("attendee" | "organizer")[];
 }) {
   const existingUser = await User.findOne({ email: data.email });
 
   if (existingUser) {
     throw new AppError("Email is already registered", 409);
-    // note: 409 specifically means "Conflict", and an already-registered email
-    // is a conflict with the current state of the database.
   }
 
   const hashedPassword = await bcrypt.hash(data.password, 12);
@@ -34,7 +31,7 @@ export async function registerUser(data: {
     lastName: data.lastName,
     email: data.email,
     password: hashedPassword,
-    role: data.role,
+    roles: data.roles ?? ["attendee"],
   });
 
   return user;
@@ -61,7 +58,7 @@ export async function loginUser(data: {
 
   const accessToken = generateAccessToken(
     user._id.toString(),
-    user.role
+    user.roles
   );
 
   const refreshToken = generateRefreshToken(
@@ -74,7 +71,7 @@ export async function loginUser(data: {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      role: user.role,
+      roles: user.roles,
     },
     accessToken,
     refreshToken,
@@ -95,9 +92,16 @@ export async function refreshAccessToken(token: string) {
       throw new AppError("Invalid refresh token", 401);
     }
 
+    // Get the latest roles from the database
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      throw new AppError("User not found", 401);
+    }
+
     const accessToken = generateAccessToken(
-      decoded.userId,
-      decoded.role
+      user._id.toString(),
+      user.roles
     );
 
     return {
