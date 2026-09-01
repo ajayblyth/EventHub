@@ -1,4 +1,4 @@
-
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { registerUser } from "../../api/auth.api";
 
@@ -8,6 +8,7 @@ import {
 } from "../../validators/auth.validator";
 
 function SignupPage() {
+  
   const [formData, setFormData] = useState<SignupFormData>({
     firstName: "",
     lastName: "",
@@ -21,9 +22,10 @@ function SignupPage() {
   >({});
 
   const [successMessage, setSuccessMessage] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -32,6 +34,34 @@ function SignupPage() {
       ...previous,
       [name]: value,
     }));
+
+    if (name === "confirmPassword") {
+      if (value === formData.password) {
+        setErrors((previous) => ({
+          ...previous,
+          confirmPassword: "",
+        }));
+      } else if (value.length > 0) {
+        setErrors((previous) => ({
+          ...previous,
+          confirmPassword: "Passwords do not match",
+        }));
+      }
+    }
+
+    if (name === "password" && formData.confirmPassword.length > 0) {
+      if (value === formData.confirmPassword) {
+        setErrors((previous) => ({
+          ...previous,
+          confirmPassword: "",
+        }));
+      } else {
+        setErrors((previous) => ({
+          ...previous,
+          confirmPassword: "Passwords do not match",
+        }));
+      }
+    }
   };
 
   const handleSubmit: React.SubmitEventHandler<HTMLFormElement> = async (
@@ -58,27 +88,32 @@ function SignupPage() {
 
     setErrors({});
 
-try {
-  const { confirmPassword, ...registrationData } = result.data;
+    try {
+      const { confirmPassword, ...registrationData } = result.data;
 
-  
-  const response = await registerUser(registrationData);
 
-  setSuccessMessage(response.message);
+      const response = await registerUser(registrationData);
 
-  setFormData({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+      setSuccessMessage(response.message);
 
-  setShowPassword(false);
-  setShowConfirmPassword(false);
-} catch (error) {
-  console.error("Registration failed:", error);
-}
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
+
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+    } catch (error: any) {
+      console.error("Registration failed:", error);
+
+      setErrors({
+        email:
+          error.response?.data?.message || "Registration failed",
+      });
+    }
   };
 
   return (
@@ -280,12 +315,12 @@ try {
 
           <p className="mt-6 text-center text-sm text-brand-600">
             Already have an account?{" "}
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="font-semibold text-brand-500 hover:text-brand-600"
             >
               Log In
-            </a>
+            </Link>
           </p>
         </div>
       </div>
