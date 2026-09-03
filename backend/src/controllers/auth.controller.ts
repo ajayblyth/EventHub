@@ -44,9 +44,11 @@ export async function login(
         secure: process.env.NODE_ENV === "production",
 
         //send this cookie only over HTTPS when we're in production. We normally use HTTP locally:
-        sameSite: "strict",
+        // sameSite: "strict",
 
+        sameSite: "lax",
         // tells the browser to be very restrictive about sending your authentication cookie when a request comes from another site, helping protect against CSRF.
+    path: "/",
 
         maxAge: 15 * 60 * 1000, //15 minutes in ms
       })
@@ -54,7 +56,11 @@ export async function login(
       .cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        // sameSite: "strict",
+
+        sameSite: "lax",
+            path: "/",
+
         maxAge: 7 * 24 * 60 * 60 * 1000,
       })
       .status(200)
@@ -103,7 +109,7 @@ export async function refreshToken(
       .cookie("accessToken", result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: 15 * 60 * 1000,
       })
       .status(200)

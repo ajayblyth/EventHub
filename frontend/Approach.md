@@ -247,3 +247,115 @@ show page    /login
 
 and Redux will be the thing we check:
 isAuthenticated
+
+
+================================================
+# events
+Yes. We can resume from there. I have the previous EventHub structure in context, so we don't need to rebuild those pages.
+
+And yes, your Event model already has the right idea for images:
+
+images: [
+  {
+    url: String,
+    alt: String,
+    isMain: Boolean,
+    order: Number
+  }
+]
+
+That gives us:
+
+Event
+ ├── images
+ │    ├── image 1 → isMain: true
+ │    ├── image 2 → isMain: false
+ │    ├── image 3 → isMain: false
+ │    └── image 4 → isMain: false
+ │
+ └── ticketTiers
+      ├── General
+      ├── VIP
+      └── ...
+Flow we're going to build
+
+I'd structure the next stage like this:
+
+                    EVENTHUB
+                       │
+                       ▼
+              ┌─────────────────┐
+              │ Discover Events  │
+              │   EventsPage     │
+              └────────┬────────┘
+                       │
+                 click event
+                       │
+                       ▼
+              ┌─────────────────┐
+              │ Event Details   │
+              │ EventDetailsPage│
+              └─────────────────┘
+
+
+Organizer side:
+
+Account dropdown
+       │
+       ▼
+ Manage My Events
+       │
+       ▼
+ ┌─────────────────────────┐
+ │      MyEventsPage       │
+ │                         │
+ │ All | Upcoming | Drafts │
+ │ Past | Search | Filter  │
+ └───────────┬─────────────┘
+             │
+       ┌─────┼──────┐
+       ▼     ▼      ▼
+     Edit  Publish  Delete
+       │
+       ▼
+ Create/Edit Event
+And for creating an event:
+Create Event
+     │
+     ├── Basic information
+     │     ├── Title
+     │     ├── Summary
+     │     └── Description
+     │
+     ├── Date & time
+     │
+     ├── Location
+     │     └── Online / Venue
+     │
+     ├── Category / Tags
+     │
+     ├── Images
+     │     ├── Add multiple
+     │     ├── Choose main image
+     │     └── Remove image
+     │
+     └── Ticket tiers
+           ├── General
+           ├── VIP
+           └── etc.
+
+Then:
+
+Create
+  ↓
+DRAFT
+  ↓
+Organizer reviews it in My Events
+  ↓
+Publish
+  ↓
+PUBLISHED
+  ↓
+Appears in attendee Discover Events
+
+That's the flow I'd continue with.

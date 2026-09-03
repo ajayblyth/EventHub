@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../../api/auth.api";
+import { toast } from "react-toastify";
 
 import {
   loginSchema,
@@ -70,8 +71,14 @@ try {
   console.log("Login successful:", response);
 
   navigate("/");
-} catch (error) {
+}
+
+ catch (error: any) {
   console.error("Login failed:", error);
+
+  toast.error(
+    error.response?.data?.message || "Invalid email or password"
+  );
 }
   };
 

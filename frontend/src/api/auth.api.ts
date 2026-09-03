@@ -1,7 +1,4 @@
-
-import axios from "axios";
-
-const API_URL = "http://localhost:5000/api/auth";
+import api from "./axios";
 
 export const registerUser = async (data: {
   firstName: string;
@@ -9,7 +6,7 @@ export const registerUser = async (data: {
   email: string;
   password: string;
 }) => {
-  const response = await axios.post(`${API_URL}/register`, data);
+  const response = await api.post("/auth/register", data);
 
   return response.data;
 };
@@ -18,31 +15,34 @@ export const loginUser = async (data: {
   email: string;
   password: string;
 }) => {
-  const response = await axios.post(`${API_URL}/login`, data, {
-    withCredentials: true,
-  });
+  const response = await api.post("/auth/login", data);
 
   return response.data;
 };
 
 export const getMe = async () => {
-  const response = await axios.get(`${API_URL}/me`, {
-    withCredentials: true,
-  });
+  const response = await api.get("/auth/me");
 
   return response.data;
 };
+
 export const logoutUser = async () => {
-  const response = await axios.post(
-    `${API_URL}/logout`,
-    {},
-    {
-      withCredentials: true,
-    }
-  );
+  const response = await api.post("/auth/logout");
 
   return response.data;
 };
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
 SignupPage
