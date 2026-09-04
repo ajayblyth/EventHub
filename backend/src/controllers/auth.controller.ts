@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { registerUser, loginUser } from "../services/auth.service.js";
+import { registerUser, loginUser, getCurrentUser } from "../services/auth.service.js";
 import AppError from "../utils/AppError.js";
 import { refreshAccessToken } from "../services/auth.service.js";
 
@@ -17,7 +17,7 @@ export async function register(
       success: true,
       message: "Registration successful",
       data: {
-        id: user._id,
+_id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
@@ -82,14 +82,17 @@ export async function getMe(
   next: NextFunction
 ) {
   try {
+    const user = await getCurrentUser(req.user!.userId);
+
     res.status(200).json({
       success: true,
-      data: req.user,
+      data: user,
     });
   } catch (error) {
     next(error);
   }
 }
+
 
 export async function refreshToken(
   req: Request,

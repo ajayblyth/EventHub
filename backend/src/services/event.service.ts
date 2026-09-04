@@ -17,12 +17,15 @@ export async function getEvents() {
   const events = await Event.find({
     status: "PUBLISHED",
     visibility: "PUBLIC",
-  }).sort({ startAt: 1 });
+  })
+    .populate("categoryIds", "name slug")
+    .sort({ startAt: 1 });
 
   return events;
 }
 
 //my events
+
 export async function getMyEvents(userId: string) {
   const now = new Date();
 
@@ -54,12 +57,13 @@ export async function getMyEvents(userId: string) {
 
   const events = await Event.find({
     organizerId: userId,
-  }).sort({ createdAt: -1 });
+  })
+    .populate("venueId")
+    .populate("categoryIds", "name slug")
+    .sort({ createdAt: -1 });
 
   return events;
 }
-
-//getmyeventbyid
 export async function getMyEventById(
   eventId: string,
   userId: string
@@ -67,7 +71,9 @@ export async function getMyEventById(
   const event = await Event.findOne({
     _id: eventId,
     organizerId: userId,
-  });
+  })
+    .populate("venueId")
+    .populate("categoryIds", "name slug");
 
   if (!event) {
     throw new AppError(
@@ -78,7 +84,6 @@ export async function getMyEventById(
 
   return event;
 }
-
 
 //get eventbyid
 

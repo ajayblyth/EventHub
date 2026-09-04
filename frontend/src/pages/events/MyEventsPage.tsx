@@ -6,10 +6,14 @@ import { toast } from "react-toastify";
 import {
   fetchMyEvents,
 } from "../../store/slices/eventSlice";
+
+
 import {
   deleteEvent,
   publishEvent,
 } from "../../api/event.api";
+
+import { Link } from "react-router-dom";
 
 function MyEventsPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -27,15 +31,14 @@ function MyEventsPage() {
     try {
       await publishEvent(id);
 
-toast.success("Event published successfully!");
+      toast.success("Event published successfully!");
 
       dispatch(fetchMyEvents());
     } catch (error: any) {
-
       toast.error(
-  error.response?.data?.message ||
-    "Failed to publish event"
-);
+        error.response?.data?.message ||
+          "Failed to publish event"
+      );
     }
   };
 
@@ -49,15 +52,14 @@ toast.success("Event published successfully!");
     try {
       await deleteEvent(id);
 
-toast.success("Event deleted successfully!");
+      toast.success("Event deleted successfully!");
 
       dispatch(fetchMyEvents());
     } catch (error: any) {
-
-    toast.error(
-  error.response?.data?.message ||
-    "Failed to delete event"
-);
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to delete event"
+      );
     }
   };
 
@@ -72,8 +74,7 @@ toast.success("Event deleted successfully!");
       </p>
     );
   }
-
-  return (
+return (
   <main className="mx-auto max-w-7xl px-6 py-8">
 
     <div className="mb-6 flex items-center justify-between">
@@ -98,118 +99,166 @@ toast.success("Event deleted successfully!");
     ) : (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
-        {events.map((event) => (
-          <div
-            key={event._id}
-            className="rounded-xl border border-brand-100
-                       bg-white p-5 shadow-sm"
-          >
+        {events.map((event) => {
 
-            {/* Main Image */}
-            {event.images && event.images.length > 0 && (
-              <img
-                src={
-                  event.images.find(
-                    (image) => image.isMain
-                  )?.url || event.images[0].url
-                }
-                alt={
-                  event.images.find(
-                    (image) => image.isMain
-                  )?.alt || event.title
-                }
-                className="mb-4 h-40 w-full rounded-xl object-cover"
-              />
-            )}
+          // Calculate total capacity
+          const totalCapacity =
+            event.ticketTiers?.reduce(
+              (total, ticket) =>
+                total + ticket.quantityTotal,
+              0
+            ) || 0;
 
-            <h2 className="text-xl font-semibold text-brand-800">
-              {event.title}
-            </h2>
+          // Calculate total tickets sold
+          const totalSold =
+            event.ticketTiers?.reduce(
+              (total, ticket) =>
+                total + ticket.quantitySold,
+              0
+            ) || 0;
 
-            <p className="mt-2 text-sm text-gray-600">
-              {new Date(event.startAt).toLocaleString()}
-            </p>
+          // Calculate percentage full
+          const percentFull =
+            totalCapacity > 0
+              ? Math.round(
+                  (totalSold / totalCapacity) * 100
+                )
+              : 0;
 
-            <p className="mt-3 text-sm font-medium">
-              Status:{" "}
-              <span
-                className={
-                  event.status === "DRAFT"
-                    ? "text-yellow-600"
-                    : event.status === "PUBLISHED"
-                    ? "text-green-600"
-                    : event.status === "COMPLETED"
-                    ? "text-blue-600"
-                    : event.status === "EXPIRED"
-                    ? "text-gray-500"
-                    : "text-red-600"
-                }
-              >
-                {event.status}
-              </span>
-            </p>
+          return (
+            <div
+              key={event._id}
+              className="rounded-xl border border-brand-100
+                         bg-white p-5 shadow-sm"
+            >
 
-            {/* Actions */}
-            <div className="mt-5 flex flex-wrap gap-2">
+              {/* Main Image */}
+              {event.images &&
+                event.images.length > 0 && (
+                  <img
+                    src={
+                      event.images.find(
+                        (image) => image.isMain
+                      )?.url ||
+                      event.images[0].url
+                    }
+                    alt={
+                      event.images.find(
+                        (image) => image.isMain
+                      )?.alt ||
+                      event.title
+                    }
+                    className="mb-4 h-40 w-full rounded-xl object-cover"
+                  />
+                )}
 
-              {/* Manage */}
-              {/* <button
-                onClick={() =>
-                  navigate(`/events/${event._id}`)
-                }
-                className="rounded-lg border border-brand-200
-                           px-3 py-2 text-sm font-semibold
-                           text-brand-800 hover:bg-brand-50"
-              >
-                Manage
-              </button> */}
+              <h2 className="text-xl font-semibold text-brand-800">
+                {event.title}
+              </h2>
 
-              {/* Edit */}
-              {(event.status === "DRAFT" ||
-                event.status === "PUBLISHED") && (
-                <button
-                  onClick={() =>
-                    navigate(`/events/${event._id}/edit`)
+              <p className="mt-2 text-sm text-gray-600">
+                {new Date(event.startAt).toLocaleString()}
+              </p>
+
+              <p className="mt-3 text-sm font-medium">
+                Status:{" "}
+                <span
+                  className={
+                    event.status === "DRAFT"
+                      ? "text-yellow-600"
+                      : event.status === "PUBLISHED"
+                      ? "text-green-600"
+                      : event.status === "COMPLETED"
+                      ? "text-blue-600"
+                      : event.status === "EXPIRED"
+                      ? "text-gray-500"
+                      : "text-red-600"
                   }
-                  className="rounded-lg border border-brand-200
-                             px-3 py-2 text-sm font-semibold
-                             text-brand-800 hover:bg-brand-50"
                 >
-                  Edit
-                </button>
-              )}
+                  {event.status}
+                </span>
+              </p>
 
-              {/* Publish */}
-              {event.status === "DRAFT" && (
-                <button
-                  onClick={() =>
-                    handlePublish(event._id)
-                  }
+              {/* Ticket Statistics */}
+              <div className="mt-4 rounded-lg bg-brand-50 p-4">
+
+                <p className="text-sm text-brand-700">
+                  Tickets Sold
+                </p>
+
+                <p className="mt-1 text-lg font-bold text-brand-900">
+                  {totalSold} / {totalCapacity}
+                </p>
+
+                <p className="mt-2 text-sm text-brand-600">
+                  {percentFull}% Full
+                </p>
+
+              </div>
+
+              {/* Actions */}
+              <div className="mt-5 flex flex-wrap gap-2">
+
+                {/* Edit */}
+                {(event.status === "DRAFT" ||
+                  event.status === "PUBLISHED") && (
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/events/${event._id}/edit`
+                      )
+                    }
+                    className="rounded-lg border border-brand-200
+                               px-3 py-2 text-sm font-semibold
+                               text-brand-800 hover:bg-brand-50"
+                  >
+                    Edit
+                  </button>
+                )}
+
+                {/* Publish */}
+                {event.status === "DRAFT" && (
+                  <button
+                    onClick={() =>
+                      handlePublish(event._id)
+                    }
+                    className="rounded-lg bg-brand-500
+                               px-3 py-2 text-sm font-semibold
+                               text-white hover:bg-brand-600"
+                  >
+                    Publish
+                  </button>
+                )}
+
+                {/* Delete */}
+                {(event.status === "DRAFT" ||
+                  event.status === "PUBLISHED") && (
+                  <button
+                    onClick={() =>
+                      handleDelete(event._id)
+                    }
+                    className="rounded-lg border border-red-200
+                               px-3 py-2 text-sm font-semibold
+                               text-red-600 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                )}
+
+                {/* Attendees */}
+                <Link
+                  to={`/organizer/events/${event._id}/attendees`}
                   className="rounded-lg bg-brand-500
                              px-3 py-2 text-sm font-semibold
                              text-white hover:bg-brand-600"
                 >
-                  Publish
-                </button>
-              )}
+                  Attendees
+                </Link>
 
-              {/* Delete */}
-              {event.status === "DRAFT" && (
-                <button
-                  onClick={() =>
-                    handleDelete(event._id)
-                  }
-                  className="rounded-lg border border-red-200
-                             px-3 py-2 text-sm font-semibold
-                             text-red-600 hover:bg-red-50"
-                >
-                  Delete
-                </button>
-              )}
-
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
       </div>
     )}

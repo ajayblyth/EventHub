@@ -11,12 +11,16 @@ import CreateEventPage from "../pages/events/CreateEventPage";
 import EventDetailsPage from "../pages/events/EventDetailsPage";
 import MyEventsPage from "../pages/events/MyEventsPage";
 import EditEventPage from "../pages/events/EditEventPage";
-
+import CheckoutPage from "../pages/booking/CheckoutPage";
+import MyBookingsPage from "../pages/booking/MyBookingsPage";
+import FakePaymentPage from "../pages/booking/FakePaymentPage";
+import EventAttendeesPage from "../pages/organizer/EventAttendeesPage";
 
 function AppRoutes() {
   return (
     <Routes>
       <Route element={<MainLayout />}>
+
         <Route path="/" element={<EventsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<SignupPage />} />
@@ -27,12 +31,43 @@ function AppRoutes() {
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>
+
           <Route path="/profile" element={<Profile />} />
-          <Route path="/events/create" element={<CreateEventPage />} />
-          <Route path="/events/my-events" element={<MyEventsPage />} />
-          <Route path="/events/:id/edit" element={<EditEventPage />}
+
+          <Route
+            path="/events/create"
+            element={<CreateEventPage />}
           />
 
+          <Route
+            path="/events/my-events"
+            element={<MyEventsPage />}
+          />
+
+          <Route
+            path="/events/:id/edit"
+            element={<EditEventPage />}
+          />
+
+          <Route
+            path="/checkout"
+            element={<CheckoutPage />}
+          />
+
+          <Route
+            path="/my-bookings"
+            element={<MyBookingsPage />}
+          />
+
+          <Route
+            path="/payment"
+            element={<FakePaymentPage />}
+          />
+
+          <Route
+            path="/organizer/events/:eventId/attendees"
+            element={<EventAttendeesPage />}
+          />
 
         </Route>
       </Route>

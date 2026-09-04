@@ -34,19 +34,3 @@ const decoded = jwt.verify(token, secret) as AuthUser;
   }
 }
 
-/*
-const token = req.cookies.accessToken;
-
-That means your backend expects the access token in the cookie, not in the Authorization header.
-
-axios.post("http://localhost:5000/api/events", data, {
-  withCredentials: true,
-});
-
-Because of:
-
-withCredentials: true
-
-the browser automatically sends the cookie.
-
-*/

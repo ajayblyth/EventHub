@@ -1,13 +1,61 @@
-import { useEffect, useState, type ChangeEvent, type SyntheticEvent } from "react";
+import {
+    useEffect,
+    useState,
+    type ChangeEvent,
+    type SyntheticEvent,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { getMyEventById, updateEvent } from "../../api/event.api";
+
+import {
+    getMyEventById,
+    updateEvent,
+} from "../../api/event.api";
+
+import { getCategories } from "../../api/category.api";
+
+import {
+    searchVenues,
+    saveVenue,
+} from "../../api/venue.api";
+
+type TicketTier = {
+    name: string;
+    description: string;
+    price: string | number;
+    currency: string;
+    quantityTotal: number;
+    minPerOrder: number;
+    maxPerOrder: number;
+};
+
+type ImageData = {
+    url: string;
+    alt?: string;
+    isMain: boolean;
+    order: number;
+};
 
 function EditEventPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        title: string;
+        slug: string;
+        summary: string;
+        description: string;
+        startAt: string;
+        endAt: string;
+        timezone: string;
+        isOnline: boolean;
+        venueId: string;
+        visibility: string;
+        categoryIds: string[];
+        tags: string[];
+        images: ImageData[];
+        ticketTiers: TicketTier[];
+    }>({
         title: "",
         slug: "",
         summary: "",
@@ -21,27 +69,20 @@ function EditEventPage() {
 
         visibility: "PUBLIC",
 
-        categoryIds: [] as string[],
-tags: [] as string[],
+        categoryIds: [],
+        tags: [],
 
-        images: [] as {
-            url: string;
-            alt?: string;
-            isMain: boolean;
-            order: number;
-        }[],
+        images: [],
 
         ticketTiers: [
             {
                 name: "",
                 description: "",
-                price: 0,
+                price: "",
                 currency: "INR",
                 quantityTotal: 1,
                 minPerOrder: 1,
                 maxPerOrder: 10,
-                salesStartAt: "",
-                salesEndAt: "",
             },
         ],
     });
@@ -49,13 +90,86 @@ tags: [] as string[],
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
+    const [categories, setCategories] = useState<any[]>([]);
+
+  const [venueSearch, setVenueSearch] = useState("");
+
+const [venueSuggestions, setVenueSuggestions] = useState<any[]>([]);
+
+const [selectedVenue, setSelectedVenue] = useState<any | null>(
+    null
+);
+
+const [isVenueSearching, setIsVenueSearching] = useState(false);
+
+    // -----------------------------
+    // Load categories
+    // -----------------------------
+
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                const data = await getCategories();
+                setCategories(data);
+            } catch (error) {
+                console.error(
+                    "Failed to load categories:",
+                    error
+                );
+
+                toast.error("Failed to load categories");
+            }
+        };
+
+        loadCategories();
+    }, []);
+
+    // -----------------------------
+    // Search venues
+    // -----------------------------
+useEffect(() => {
+    if (
+        formData.isOnline ||
+        !isVenueSearching ||
+        venueSearch.trim().length < 2
+    ) {
+        setVenueSuggestions([]);
+        return;
+    }
+
+    const timer = setTimeout(async () => {
+        try {
+            const venues = await searchVenues(
+                venueSearch
+            );
+
+            setVenueSuggestions(venues);
+        } catch (error) {
+            console.error(
+                "Failed to search venues:",
+                error
+            );
+
+            setVenueSuggestions([]);
+        }
+    }, 300);
+
+    return () => clearTimeout(timer);
+}, [
+    venueSearch,
+    formData.isOnline,
+    isVenueSearching,
+]);
+    // -----------------------------
+    // Load existing event
+    // -----------------------------
+
     useEffect(() => {
         if (!id) return;
 
         const loadEvent = async () => {
             try {
                 const response = await getMyEventById(id);
-
                 const event = response.event;
 
                 setFormData({
@@ -66,58 +180,74 @@ tags: [] as string[],
 
                     startAt: event.startAt
                         ? new Date(event.startAt)
-                            .toISOString()
-                            .slice(0, 16)
+                              .toISOString()
+                              .slice(0, 16)
                         : "",
 
                     endAt: event.endAt
                         ? new Date(event.endAt)
-                            .toISOString()
-                            .slice(0, 16)
+                              .toISOString()
+                              .slice(0, 16)
                         : "",
 
-                    timezone: event.timezone || "Asia/Kolkata",
+                    timezone:
+                        event.timezone || "Asia/Kolkata",
 
                     isOnline: event.isOnline || false,
 
-                    venueId: event.venueId || "",
+                    venueId:
+                        typeof event.venueId === "object"
+                            ? event.venueId?._id || ""
+                            : event.venueId || "",
 
-                    visibility: event.visibility || "PUBLIC",
+                    visibility:
+                        event.visibility || "PUBLIC",
 
+                    categoryIds:
+                        event.categoryIds?.map(
+                            (category: any) =>
+                                typeof category === "object"
+                                    ? category._id
+                                    : category
+                        ) || [],
 
-                    categoryIds: event.categoryIds || [],
-tags: event.tags || [],
-
+                    tags: event.tags || [],
 
                     images: event.images || [],
 
-                    ticketTiers: (event.ticketTiers || []).map(
-                        (tier: any) => ({
-                            name: tier.name || "",
-                            description: tier.description || "",
-                            price: tier.price || 0,
-                            currency: tier.currency || "INR",
-                            quantityTotal: tier.quantityTotal || 1,
-                            minPerOrder: tier.minPerOrder || 1,
-                            maxPerOrder: tier.maxPerOrder || 10,
-                            salesStartAt: tier.salesStartAt
-                                ? new Date(tier.salesStartAt)
-                                    .toISOString()
-                                    .slice(0, 16)
-                                : "",
-                            salesEndAt: tier.salesEndAt
-                                ? new Date(tier.salesEndAt)
-                                    .toISOString()
-                                    .slice(0, 16)
-                                : "",
-                        })
-                    ),
+                    ticketTiers: (
+                        event.ticketTiers || []
+                    ).map((tier: any) => ({
+                        name: tier.name || "",
+                        description:
+                            tier.description || "",
+                        price: tier.price ?? "",
+                        currency:
+                            tier.currency || "INR",
+                        quantityTotal:
+                            tier.quantityTotal ?? 1,
+                        minPerOrder:
+                            tier.minPerOrder ?? 1,
+                        maxPerOrder:
+                            tier.maxPerOrder ?? 10,
+                    })),
                 });
 
+                // Existing venue
+                if (
+                    event.venueId &&
+                    typeof event.venueId === "object"
+                ) {
+                    setSelectedVenue(event.venueId);
+
+                    setVenueSearch(
+                        event.venueId.name || ""
+                    );
+                }
             } catch (error: any) {
                 toast.error(
                     error.response?.data?.message ||
-                    "Failed to load event"
+                        "Failed to load event"
                 );
             } finally {
                 setIsLoading(false);
@@ -127,8 +257,14 @@ tags: event.tags || [],
         loadEvent();
     }, [id]);
 
+    // -----------------------------
+    // General input change
+    // -----------------------------
+
     const handleChange = (
-        event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+        event: ChangeEvent<
+            HTMLInputElement | HTMLTextAreaElement
+        >
     ) => {
         const { name, value } = event.target;
 
@@ -138,6 +274,60 @@ tags: event.tags || [],
         }));
     };
 
+    // -----------------------------
+    // Venue search change
+    // -----------------------------
+
+const handleVenueSearchChange = (
+    event: ChangeEvent<HTMLInputElement>
+) => {
+    const value = event.target.value;
+
+    setVenueSearch(value);
+
+    setIsVenueSearching(true);
+
+    setSelectedVenue(null);
+
+    setFormData((prev) => ({
+        ...prev,
+        venueId: "",
+    }));
+};
+
+    // -----------------------------
+    // Select venue
+    // -----------------------------
+
+    const handleVenueSelect = async (
+        venue: any
+    ) => {
+        try {
+            const savedVenue = await saveVenue(venue);
+
+            setSelectedVenue(savedVenue);
+
+            setVenueSearch(
+                savedVenue.name || venue.name || ""
+            );
+
+            setFormData((prev) => ({
+                ...prev,
+                venueId: savedVenue._id,
+            }));
+
+            setVenueSuggestions([]);
+        } catch (error: any) {
+            toast.error(
+                error.response?.data?.message ||
+                    "Failed to select venue"
+            );
+        }
+    };
+
+    // -----------------------------
+    // Image change
+    // -----------------------------
 
     const handleImageChange = (
         index: number,
@@ -146,70 +336,106 @@ tags: event.tags || [],
     ) => {
         setFormData((prev) => ({
             ...prev,
-            images: prev.images.map((image, imageIndex) =>
-                imageIndex === index
-                    ? {
-                        ...image,
-                        [field]: value,
-                    }
-                    : image
+
+            images: prev.images.map(
+                (image, imageIndex) =>
+                    imageIndex === index
+                        ? {
+                              ...image,
+                              [field]: value,
+                          }
+                        : image
             ),
         }));
     };
 
+    // -----------------------------
+    // Ticket change
+    // -----------------------------
 
     const handleTicketChange = (
         index: number,
-        field: string,
-        value: string | number
+        field:
+            | "name"
+            | "description"
+            | "price"
+            | "quantityTotal"
+            | "minPerOrder"
+            | "maxPerOrder",
+        value: string
     ) => {
         setFormData((prev) => ({
             ...prev,
+
             ticketTiers: prev.ticketTiers.map(
                 (tier, tierIndex) =>
                     tierIndex === index
                         ? {
-                            ...tier,
-                            [field]: value,
-                        }
+                              ...tier,
+
+                              [field]:
+                                  field === "name" ||
+                                  field ===
+                                      "description"
+                                      ? value
+                                      : value === ""
+                                        ? ""
+                                        : Number(value),
+                          }
                         : tier
             ),
         }));
     };
 
+    // -----------------------------
+    // Add ticket tier
+    // -----------------------------
+
     const addTicketTier = () => {
         setFormData((prev) => ({
             ...prev,
+
             ticketTiers: [
                 ...prev.ticketTiers,
                 {
                     name: "",
                     description: "",
-                    price: 0,
+                    price: "",
                     currency: "INR",
                     quantityTotal: 1,
                     minPerOrder: 1,
                     maxPerOrder: 10,
-                    salesStartAt: "",
-                    salesEndAt: "",
                 },
             ],
         }));
     };
 
-    const removeTicketTier = (index: number) => {
+    // -----------------------------
+    // Remove ticket tier
+    // -----------------------------
+
+    const removeTicketTier = (
+        index: number
+    ) => {
         setFormData((prev) => ({
             ...prev,
-            ticketTiers: prev.ticketTiers.filter(
-                (_, tierIndex) => tierIndex !== index
-            ),
+
+            ticketTiers:
+                prev.ticketTiers.filter(
+                    (_, tierIndex) =>
+                        tierIndex !== index
+                ),
         }));
     };
 
+    // -----------------------------
+    // Add image
+    // -----------------------------
 
     const addImage = () => {
         setFormData((prev) => ({
             ...prev,
+
             images: [
                 ...prev.images,
                 {
@@ -222,11 +448,19 @@ tags: event.tags || [],
         }));
     };
 
-    const removeImage = (index: number) => {
+    // -----------------------------
+    // Remove image
+    // -----------------------------
+
+    const removeImage = (
+        index: number
+    ) => {
         setFormData((prev) => {
-            const updatedImages = prev.images.filter(
-                (_, imageIndex) => imageIndex !== index
-            );
+            const updatedImages =
+                prev.images.filter(
+                    (_, imageIndex) =>
+                        imageIndex !== index
+                );
 
             if (
                 prev.images[index]?.isMain &&
@@ -237,124 +471,182 @@ tags: event.tags || [],
 
             return {
                 ...prev,
-                images: updatedImages.map((image, imageIndex) => ({
-                    ...image,
-                    order: imageIndex,
-                })),
+
+                images: updatedImages.map(
+                    (image, imageIndex) => ({
+                        ...image,
+                        order: imageIndex,
+                    })
+                ),
             };
         });
     };
 
-    const setMainImage = (index: number) => {
+    // -----------------------------
+    // Set main image
+    // -----------------------------
+
+    const setMainImage = (
+        index: number
+    ) => {
         setFormData((prev) => ({
             ...prev,
-            images: prev.images.map((image, imageIndex) => ({
-                ...image,
-                isMain: imageIndex === index,
-            })),
+
+            images: prev.images.map(
+                (image, imageIndex) => ({
+                    ...image,
+                    isMain:
+                        imageIndex === index,
+                })
+            ),
         }));
     };
 
-const handleSubmit = async (
-  event: SyntheticEvent<HTMLFormElement>
-) => {
-  event.preventDefault();
+    // -----------------------------
+    // Submit
+    // -----------------------------
 
-  if (!id) return;
+    const handleSubmit = async (
+        event: SyntheticEvent<HTMLFormElement>
+    ) => {
+        event.preventDefault();
 
-  const start = new Date(formData.startAt);
-  const end = new Date(formData.endAt);
-  const now = new Date();
+        if (!id) return;
 
-  // Event date validation
-  if (start <= now) {
-    toast.error(
-      "Event start time must be in the future."
-    );
-    return;
-  }
+        const start = new Date(
+            formData.startAt
+        );
 
-  if (end <= start) {
-    toast.error(
-      "Event end time must be after the start time."
-    );
-    return;
-  }
+        const end = new Date(
+            formData.endAt
+        );
 
-  // Ticket validation
-  for (const tier of formData.ticketTiers) {
-    if (!tier.name.trim()) {
-      toast.error("Ticket name is required.");
-      return;
+        const now = new Date();
+
+        if (start <= now) {
+            toast.error(
+                "Event start time must be in the future."
+            );
+            return;
+        }
+
+        if (end <= start) {
+            toast.error(
+                "Event end time must be after the start time."
+            );
+            return;
+        }
+
+        if (
+            !formData.isOnline &&
+            !formData.venueId
+        ) {
+            toast.error(
+                "Please select a venue."
+            );
+            return;
+        }
+
+        if (
+            formData.categoryIds.length === 0
+        ) {
+            toast.error(
+                "Please select a category."
+            );
+            return;
+        }
+
+        for (const tier of formData.ticketTiers) {
+            if (!tier.name.trim()) {
+                toast.error(
+                    "Ticket name is required."
+                );
+                return;
+            }
+
+            if (
+                tier.price === "" ||
+                Number(tier.price) < 0
+            ) {
+                toast.error(
+                    `Please enter a valid price for ${
+                        tier.name
+                    }.`
+                );
+                return;
+            }
+
+            if (
+                tier.quantityTotal < 1
+            ) {
+                toast.error(
+                    `Ticket quantity must be at least 1 for ${
+                        tier.name
+                    }.`
+                );
+                return;
+            }
+
+            if (
+                tier.minPerOrder < 1
+            ) {
+                toast.error(
+                    `Minimum tickets per order must be at least 1 for ${
+                        tier.name
+                    }.`
+                );
+                return;
+            }
+
+            if (
+                tier.maxPerOrder <
+                tier.minPerOrder
+            ) {
+                toast.error(
+                    `Maximum tickets per order must be greater than or equal to minimum for ${
+                        tier.name
+                    }.`
+                );
+                return;
+            }
+        }
+
+        try {
+            setIsSaving(true);
+
+            await updateEvent(
+                id,
+                formData
+            );
+
+            toast.success(
+                "Event updated successfully!"
+            );
+
+            navigate(
+                "/events/my-events"
+            );
+        } catch (error: any) {
+            toast.error(
+                error.response?.data?.message ||
+                    "Failed to update event"
+            );
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // -----------------------------
+    // Loading
+    // -----------------------------
+
+    if (isLoading) {
+        return (
+            <p className="p-8 text-center">
+                Loading event...
+            </p>
+        );
     }
-
-    if (tier.price < 0) {
-      toast.error(
-        `Ticket price cannot be negative for ${tier.name}.`
-      );
-      return;
-    }
-
-    if (tier.quantityTotal < 1) {
-      toast.error(
-        `Ticket quantity must be at least 1 for ${tier.name}.`
-      );
-      return;
-    }
-
-    if (tier.minPerOrder < 1) {
-      toast.error(
-        `Minimum tickets per order must be at least 1 for ${tier.name}.`
-      );
-      return;
-    }
-
-    if (tier.maxPerOrder < tier.minPerOrder) {
-      toast.error(
-        `Maximum tickets per order must be greater than or equal to minimum for ${tier.name}.`
-      );
-      return;
-    }
-
-    if (
-      tier.salesStartAt &&
-      tier.salesEndAt &&
-      new Date(tier.salesEndAt) <=
-        new Date(tier.salesStartAt)
-    ) {
-      toast.error(
-        `Sales end time must be after sales start time for ${tier.name}.`
-      );
-      return;
-    }
-  }
-
-  try {
-    setIsSaving(true);
-
-    await updateEvent(id, formData);
-
-    toast.success("Event updated successfully!");
-
-    navigate("/events/my-events");
-  } catch (error: any) {
-    toast.error(
-      error.response?.data?.message ||
-        "Failed to update event"
-    );
-  } finally {
-    setIsSaving(false);
-  }
-};
-
-if (isLoading) {
-  return (
-    <p className="p-8 text-center">
-      Loading event...
-    </p>
-  );
-}
-
     return (
         <section className="min-h-screen bg-brand-50 px-6 py-12">
             <div className="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow-sm">
@@ -363,7 +655,12 @@ if (isLoading) {
                     Edit Event
                 </h1>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-6"
+                >
+
+                    {/* Event Title */}
 
                     <div>
                         <label className="mb-2 block font-semibold">
@@ -379,6 +676,8 @@ if (isLoading) {
                         />
                     </div>
 
+                    {/* Slug */}
+
                     <div>
                         <label className="mb-2 block font-semibold">
                             Slug
@@ -393,6 +692,8 @@ if (isLoading) {
                         />
                     </div>
 
+                    {/* Summary */}
+
                     <div>
                         <label className="mb-2 block font-semibold">
                             Summary
@@ -405,6 +706,8 @@ if (isLoading) {
                             className="w-full rounded-lg border border-brand-100 px-4 py-2"
                         />
                     </div>
+
+                    {/* Description */}
 
                     <div>
                         <label className="mb-2 block font-semibold">
@@ -420,6 +723,8 @@ if (isLoading) {
                             className="w-full rounded-lg border border-brand-100 px-4 py-2"
                         />
                     </div>
+
+                    {/* Date / Time */}
 
                     <div className="grid gap-6 md:grid-cols-2">
 
@@ -455,6 +760,8 @@ if (isLoading) {
 
                     </div>
 
+                    {/* Event Type */}
+
                     <div>
                         <label className="mb-2 block font-semibold">
                             Event Type
@@ -465,35 +772,87 @@ if (isLoading) {
                             onChange={(event) =>
                                 setFormData((prev) => ({
                                     ...prev,
-                                    isOnline: event.target.value === "true",
+                                    isOnline:
+                                        event.target.value === "true",
                                 }))
                             }
                             className="w-full rounded-lg border border-brand-100 px-4 py-2"
                         >
-                            <option value="false">In-person</option>
-                            <option value="true">Online</option>
+                            <option value="false">
+                                In-person
+                            </option>
+
+                            <option value="true">
+                                Online
+                            </option>
                         </select>
                     </div>
 
+                    {/* Venue */}
+
                     {!formData.isOnline && (
-                        <div>
+                        <div className="relative">
+
                             <label className="mb-2 block font-semibold">
                                 Venue
                             </label>
 
                             <input
                                 type="text"
-                                name="venueId"
-                                value={formData.venueId}
-                                onChange={handleChange}
-                                placeholder="Enter venue"
+                                value={venueSearch}
+                                onChange={handleVenueSearchChange}
+                                placeholder="Search venue"
                                 className="w-full rounded-lg border border-brand-100 px-4 py-2"
                             />
+
+                            {selectedVenue && (
+                                <p className="mt-2 text-sm text-brand-700">
+                                    Selected:{" "}
+                                    <span className="font-semibold">
+                                        {selectedVenue.name}
+                                    </span>
+
+                                    {selectedVenue.city &&
+                                        `, ${selectedVenue.city}`}
+                                </p>
+                            )}
+
+                            {venueSuggestions.length > 0 && (
+                                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-brand-100 bg-white shadow-lg">
+
+                                    {venueSuggestions.map((venue) => (
+                                        <button
+                                            type="button"
+                                            key={venue._id}
+                                            onClick={() =>
+                                                handleVenueSelect(venue)
+                                            }
+                                            className="block w-full px-4 py-3 text-left hover:bg-brand-50"
+                                        >
+                                            <p className="font-semibold text-brand-900">
+                                                {venue.name}
+                                            </p>
+
+                                            {venue.city && (
+                                                <p className="text-sm text-gray-500">
+                                                    {venue.city}
+                                                </p>
+                                            )}
+                                        </button>
+                                    ))}
+
+                                </div>
+                            )}
+
                         </div>
                     )}
 
+                    {/* Images */}
+
                     <div>
+
                         <div className="mb-3 flex items-center justify-between">
+
                             <label className="font-semibold">
                                 Event Images
                             </label>
@@ -501,36 +860,37 @@ if (isLoading) {
                             <button
                                 type="button"
                                 onClick={addImage}
-                                className="rounded-lg bg-brand-100 px-4 py-2
-                 text-sm font-semibold text-brand-900
-                 hover:bg-brand-200"
+                                className="rounded-lg bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-200"
                             >
                                 + Add Image
                             </button>
+
                         </div>
 
                         <div className="space-y-4">
+
                             {formData.images.map((image, index) => (
                                 <div
                                     key={index}
                                     className="rounded-xl border border-brand-100 p-4"
                                 >
+
                                     <div className="mb-4 flex items-center justify-between">
+
                                         <p className="font-semibold text-brand-900">
                                             Image {index + 1}
                                         </p>
 
                                         {image.isMain && (
-                                            <span
-                                                className="rounded-full bg-brand-100 px-3 py-1
-                         text-sm font-semibold text-brand-800"
-                                            >
+                                            <span className="rounded-full bg-brand-100 px-3 py-1 text-sm font-semibold text-brand-800">
                                                 Main Image
                                             </span>
                                         )}
+
                                     </div>
 
                                     <div className="space-y-3">
+
                                         <input
                                             type="url"
                                             value={image.url}
@@ -558,16 +918,18 @@ if (isLoading) {
                                             placeholder="Image description"
                                             className="w-full rounded-lg border border-brand-100 px-4 py-2"
                                         />
+
                                     </div>
 
                                     <div className="mt-4 flex gap-3">
+
                                         {!image.isMain && (
                                             <button
                                                 type="button"
-                                                onClick={() => setMainImage(index)}
-                                                className="rounded-lg border border-brand-300 px-4 py-2
-                         text-sm font-semibold text-brand-800
-                         hover:bg-brand-50"
+                                                onClick={() =>
+                                                    setMainImage(index)
+                                                }
+                                                className="rounded-lg border border-brand-300 px-4 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-50"
                                             >
                                                 Set as Main
                                             </button>
@@ -576,23 +938,29 @@ if (isLoading) {
                                         {formData.images.length > 1 && (
                                             <button
                                                 type="button"
-                                                onClick={() => removeImage(index)}
-                                                className="rounded-lg border border-red-200 px-4 py-2
-                         text-sm font-semibold text-red-600
-                         hover:bg-red-50"
+                                                onClick={() =>
+                                                    removeImage(index)
+                                                }
+                                                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
                                             >
                                                 Remove
                                             </button>
                                         )}
+
                                     </div>
+
                                 </div>
                             ))}
+
                         </div>
                     </div>
 
+                    {/* Ticket Tiers */}
 
                     <div>
+
                         <div className="mb-3 flex items-center justify-between">
+
                             <label className="font-semibold">
                                 Ticket Tiers
                             </label>
@@ -600,21 +968,23 @@ if (isLoading) {
                             <button
                                 type="button"
                                 onClick={addTicketTier}
-                                className="rounded-lg bg-brand-100 px-4 py-2
-                 text-sm font-semibold text-brand-900
-                 hover:bg-brand-200"
+                                className="rounded-lg bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-200"
                             >
                                 + Add Ticket Tier
                             </button>
+
                         </div>
 
                         <div className="space-y-5">
+
                             {formData.ticketTiers.map((tier, index) => (
                                 <div
                                     key={index}
                                     className="rounded-xl border border-brand-100 p-5"
                                 >
+
                                     <div className="mb-4 flex items-center justify-between">
+
                                         <h3 className="font-semibold text-brand-900">
                                             Ticket Tier {index + 1}
                                         </h3>
@@ -622,15 +992,20 @@ if (isLoading) {
                                         {formData.ticketTiers.length > 1 && (
                                             <button
                                                 type="button"
-                                                onClick={() => removeTicketTier(index)}
+                                                onClick={() =>
+                                                    removeTicketTier(index)
+                                                }
                                                 className="text-sm font-semibold text-red-600"
                                             >
                                                 Remove
                                             </button>
                                         )}
+
                                     </div>
 
                                     <div className="space-y-4">
+
+                                        {/* Name */}
 
                                         <input
                                             type="text"
@@ -646,6 +1021,8 @@ if (isLoading) {
                                             className="w-full rounded-lg border border-brand-100 px-4 py-2"
                                         />
 
+                                        {/* Description */}
+
                                         <textarea
                                             value={tier.description}
                                             onChange={(event) =>
@@ -660,6 +1037,8 @@ if (isLoading) {
                                             className="w-full rounded-lg border border-brand-100 px-4 py-2"
                                         />
 
+                                        {/* Price / Quantity / Min */}
+
                                         <div className="grid gap-4 md:grid-cols-3">
 
                                             <input
@@ -670,7 +1049,7 @@ if (isLoading) {
                                                     handleTicketChange(
                                                         index,
                                                         "price",
-                                                        Number(event.target.value)
+                                                        event.target.value
                                                     )
                                                 }
                                                 placeholder="Price"
@@ -685,7 +1064,7 @@ if (isLoading) {
                                                     handleTicketChange(
                                                         index,
                                                         "quantityTotal",
-                                                        Number(event.target.value)
+                                                        event.target.value
                                                     )
                                                 }
                                                 placeholder="Total quantity"
@@ -700,7 +1079,7 @@ if (isLoading) {
                                                     handleTicketChange(
                                                         index,
                                                         "minPerOrder",
-                                                        Number(event.target.value)
+                                                        event.target.value
                                                     )
                                                 }
                                                 placeholder="Min per order"
@@ -708,6 +1087,8 @@ if (isLoading) {
                                             />
 
                                         </div>
+
+                                        {/* Max */}
 
                                         <div className="grid gap-4 md:grid-cols-3">
 
@@ -719,36 +1100,10 @@ if (isLoading) {
                                                     handleTicketChange(
                                                         index,
                                                         "maxPerOrder",
-                                                        Number(event.target.value)
+                                                        event.target.value
                                                     )
                                                 }
                                                 placeholder="Max per order"
-                                                className="w-full rounded-lg border border-brand-100 px-4 py-2"
-                                            />
-
-                                            <input
-                                                type="datetime-local"
-                                                value={tier.salesStartAt}
-                                                onChange={(event) =>
-                                                    handleTicketChange(
-                                                        index,
-                                                        "salesStartAt",
-                                                        event.target.value
-                                                    )
-                                                }
-                                                className="w-full rounded-lg border border-brand-100 px-4 py-2"
-                                            />
-
-                                            <input
-                                                type="datetime-local"
-                                                value={tier.salesEndAt}
-                                                onChange={(event) =>
-                                                    handleTicketChange(
-                                                        index,
-                                                        "salesEndAt",
-                                                        event.target.value
-                                                    )
-                                                }
                                                 className="w-full rounded-lg border border-brand-100 px-4 py-2"
                                             />
 
@@ -759,65 +1114,88 @@ if (isLoading) {
                                         </p>
 
                                     </div>
+
                                 </div>
                             ))}
+
                         </div>
                     </div>
 
-                    <div>
-  <label className="mb-2 block font-semibold">
-    Categories
-  </label>
-
-  <input
-    type="text"
-    value={formData.categoryIds.join(", ")}
-    onChange={(event) =>
-      setFormData((prev) => ({
-        ...prev,
-        categoryIds: event.target.value
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean),
-      }))
-    }
-    placeholder="Technology, Music, Business"
-    className="w-full rounded-lg border border-brand-100 px-4 py-2"
-  />
-
-  <p className="mt-1 text-sm text-gray-500">
-    Separate categories with commas.
-  </p>
-</div>
-
-<div>
-  <label className="mb-2 block font-semibold">
-    Tags
-  </label>
-
-  <input
-    type="text"
-    value={formData.tags.join(", ")}
-    onChange={(event) =>
-      setFormData((prev) => ({
-        ...prev,
-        tags: event.target.value
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean),
-      }))
-    }
-    placeholder="react, javascript, meetup"
-    className="w-full rounded-lg border border-brand-100 px-4 py-2"
-  />
-
-  <p className="mt-1 text-sm text-gray-500">
-    Separate tags with commas.
-  </p>
-</div>
-
+                    {/* Categories */}
 
                     <div>
+
+                        <label className="mb-2 block font-semibold">
+                            Category
+                        </label>
+
+                        <select
+                            value={formData.categoryIds[0] || ""}
+                            onChange={(event) =>
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    categoryIds:
+                                        event.target.value
+                                            ? [event.target.value]
+                                            : [],
+                                }))
+                            }
+                            className="w-full rounded-lg border border-brand-100 px-4 py-2"
+                        >
+
+                            <option value="">
+                                Select a category
+                            </option>
+
+                            {categories.map((category) => (
+                                <option
+                                    key={category._id}
+                                    value={category._id}
+                                >
+                                    {category.name}
+                                </option>
+                            ))}
+
+                        </select>
+
+                    </div>
+
+                    {/* Tags */}
+
+                    <div>
+
+                        <label className="mb-2 block font-semibold">
+                            Tags
+                        </label>
+
+                        <input
+                            type="text"
+                            value={formData.tags.join(", ")}
+                            onChange={(event) =>
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    tags: event.target.value
+                                        .split(",")
+                                        .map((value) =>
+                                            value.trim()
+                                        )
+                                        .filter(Boolean),
+                                }))
+                            }
+                            placeholder="react, javascript, meetup"
+                            className="w-full rounded-lg border border-brand-100 px-4 py-2"
+                        />
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            Separate tags with commas.
+                        </p>
+
+                    </div>
+
+                    {/* Visibility */}
+
+                    <div>
+
                         <label className="mb-2 block font-semibold">
                             Visibility
                         </label>
@@ -827,25 +1205,39 @@ if (isLoading) {
                             onChange={(event) =>
                                 setFormData((prev) => ({
                                     ...prev,
-                                    visibility: event.target.value,
+                                    visibility:
+                                        event.target.value,
                                 }))
                             }
                             className="w-full rounded-lg border border-brand-100 px-4 py-2"
                         >
-                            <option value="PUBLIC">Public</option>
-                            <option value="PRIVATE">Private</option>
-                            <option value="UNLISTED">Unlisted</option>
+
+                            <option value="PUBLIC">
+                                Public
+                            </option>
+
+                            <option value="PRIVATE">
+                                Private
+                            </option>
+
+                            <option value="UNLISTED">
+                                Unlisted
+                            </option>
+
                         </select>
+
                     </div>
+
+                    {/* Submit */}
 
                     <button
                         type="submit"
                         disabled={isSaving}
-                        className="w-full rounded-lg bg-brand-500 px-6 py-3
-                       font-semibold text-white hover:bg-brand-600
-                       disabled:cursor-not-allowed disabled:opacity-50"
+                        className="w-full rounded-lg bg-brand-500 px-6 py-3 font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        {isSaving ? "Saving..." : "Save Changes"}
+                        {isSaving
+                            ? "Saving..."
+                            : "Save Changes"}
                     </button>
 
                 </form>

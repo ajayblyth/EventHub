@@ -65,17 +65,17 @@ export async function loginUser(data: {
     user._id.toString()
   );
 
-  return {
-    user: {
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      roles: user.roles,
-    },
-    accessToken,
-    refreshToken,
-  };
+return {
+  user: {
+    _id: user._id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    roles: user.roles,
+  },
+  accessToken,
+  refreshToken,
+};
 }
 
 export async function refreshAccessToken(token: string) {
@@ -114,4 +114,16 @@ export async function refreshAccessToken(token: string) {
 
     throw new AppError("Invalid or expired refresh token", 401);
   }
+}
+
+export async function getCurrentUser(userId: string) {
+  const user = await User.findById(userId).select(
+    "-password"
+  );
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  return user;
 }

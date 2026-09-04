@@ -2,8 +2,6 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { getEvents, getMyEvents } from "../../api/event.api";
 
 
-
-
 interface EventImage {
   url: string;
   alt?: string;
@@ -20,7 +18,25 @@ interface Event {
   startAt: string;
   status: "DRAFT" | "PUBLISHED";
   isOnline: boolean;
+categoryIds: {
+  _id: string;
+  name: string;
+  slug: string;
+}[];
   images?: EventImage[];
+  ticketTiers: {
+  _id: string;
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  quantityTotal: number;
+  quantitySold: number;
+  minPerOrder: number;
+  maxPerOrder: number;
+  salesStartAt?: string;
+  salesEndAt?: string;
+}[];
 }
 
 interface EventState {

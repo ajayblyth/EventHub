@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../../api/auth.api";
-import { toast } from "react-toastify";
 
 import {
   loginSchema,
@@ -28,7 +27,9 @@ function LoginPage() {
     Partial<Record<keyof LoginFormData, string>>
   >({});
 
-const dispatch = useDispatch<AppDispatch>();
+  const [loginError, setLoginError] = useState("");
+
+  const dispatch = useDispatch<AppDispatch>();
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -62,24 +63,23 @@ const dispatch = useDispatch<AppDispatch>();
     }
 
     setErrors({});
+    setLoginError("");
+    try {
+      const response = await loginUser(result.data);
 
-try {
-  const response = await loginUser(result.data);
+      dispatch(setCredentials(response.data));
 
-  dispatch(setCredentials(response.data));
+      console.log("Login successful:", response);
 
-  console.log("Login successful:", response);
+      navigate("/");
 
-  navigate("/");
-}
+    } catch (error: any) {
+      console.error("Login failed:", error);
 
- catch (error: any) {
-  console.error("Login failed:", error);
-
-  toast.error(
-    error.response?.data?.message || "Invalid email or password"
-  );
-}
+      setLoginError(
+        error.response?.data?.message || "Invalid email or password"
+      );
+    }
   };
 
   return (
@@ -87,9 +87,9 @@ try {
       <div className="mx-auto max-w-md">
         <div className="rounded-2xl bg-white p-8 shadow-sm">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-brand-900">
+            {/* <h1 className="text-3xl font-bold text-brand-900">
               Welcome back
-            </h1>
+            </h1> */}
 
             <p className="mt-2 text-brand-600">
               Sign in to continue to EventHub
@@ -164,6 +164,13 @@ try {
                   {errors.password}
                 </p>
               )}
+
+              {loginError && (
+                <p className="mt-1 text-sm text-red-500">
+                  {loginError}
+                </p>
+              )}
+
             </div>
 
             {/* Login Button */}

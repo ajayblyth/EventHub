@@ -8,10 +8,7 @@ import { searchVenues, saveVenue } from "../../api/venue.api";
 
 import { useNavigate } from "react-router-dom";
 import { createEvent, publishEvent } from "../../api/event.api";
-
-
-
-
+import { getCategories } from "../../api/category.api";
 
 
 function CreateEventPage() {
@@ -26,23 +23,25 @@ function CreateEventPage() {
     endAt: "",
     timezone: "Asia/Kolkata",
     isOnline: false,
+    categoryIds: [] as string[],
+    tags: [] as string[],
     visibility: "PUBLIC",
     venueId: "",
 
     images: [
-  {
-    url: "",
-    alt: "",
-    isMain: true,
-    order: 0,
-  },
-],
+      {
+        url: "",
+        alt: "",
+        isMain: true,
+        order: 0,
+      },
+    ],
 
     ticketTiers: [
       {
         name: "General",
         description: "General entry",
-        price: 500,
+        price: "",
         currency: "INR",
         quantityTotal: 100,
         minPerOrder: 1,
@@ -53,11 +52,30 @@ function CreateEventPage() {
 
   const [createdEventId, setCreatedEventId] = useState<string | null>(null);
 
-const [venueSearch, setVenueSearch] = useState("");
-const [venueSuggestions, setVenueSuggestions] = useState<any[]>([]);
-const [selectedVenue, setSelectedVenue] = useState<any | null>(null);
+  const [venueSearch, setVenueSearch] = useState("");
+  const [venueSuggestions, setVenueSuggestions] = useState<any[]>([]);
+  const [selectedVenue, setSelectedVenue] = useState<any | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
 
- useEffect(() => {
+
+  //load categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+        toast.error("Failed to load categories");
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  //search venues
+
+  useEffect(() => {
     if (formData.isOnline || venueSearch.trim().length < 2) {
       setVenueSuggestions([]);
       return;
@@ -74,7 +92,7 @@ const [selectedVenue, setSelectedVenue] = useState<any | null>(null);
     }, 300);
 
     return () => clearTimeout(timer);
-      }, [venueSearch, formData.isOnline]);
+  }, [venueSearch, formData.isOnline]);
 
 
 
@@ -91,113 +109,177 @@ const [selectedVenue, setSelectedVenue] = useState<any | null>(null);
 
 
   const handleImageChange = (
+    index: number,
+    field: "url" | "alt",
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.map((image, imageIndex) =>
+        imageIndex === index
+          ? {
+            ...image,
+            [field]: value,
+          }
+          : image
+      ),
+    }));
+  };
+
+  const addImage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      images: [
+        ...prev.images,
+        {
+          url: "",
+          alt: "",
+          isMain: false,
+          order: prev.images.length,
+        },
+      ],
+    }));
+  };
+
+  const removeImage = (index: number) => {
+    setFormData((prev) => {
+      const updatedImages = prev.images.filter(
+        (_, imageIndex) => imageIndex !== index
+      );
+
+      // If the main image was removed, make the first image main
+      if (
+        prev.images[index]?.isMain &&
+        updatedImages.length > 0
+      ) {
+        updatedImages[0].isMain = true;
+      }
+
+      return {
+        ...prev,
+        images: updatedImages.map((image, imageIndex) => ({
+          ...image,
+          order: imageIndex,
+        })),
+      };
+    });
+  };
+
+  const setMainImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.map((image, imageIndex) => ({
+        ...image,
+        isMain: imageIndex === index,
+      })),
+    }));
+  };
+
+  const handleTicketChange = (
   index: number,
-  field: "url" | "alt",
+  field:
+    | "name"
+    | "description"
+    | "price"
+    | "quantityTotal"
+    | "minPerOrder"
+    | "maxPerOrder",
   value: string
 ) => {
   setFormData((prev) => ({
     ...prev,
-    images: prev.images.map((image, imageIndex) =>
-      imageIndex === index
+    ticketTiers: prev.ticketTiers.map((ticket, ticketIndex) =>
+      ticketIndex === index
         ? {
-            ...image,
-            [field]: value,
+            ...ticket,
+            [field]:
+              field === "name" ||
+              field === "description" ||
+              (field === "price" && value === "")
+                ? value
+                : Number(value),
           }
-        : image
+        : ticket
     ),
   }));
 };
 
-const addImage = () => {
+const addTicketTier = () => {
   setFormData((prev) => ({
     ...prev,
-    images: [
-      ...prev.images,
+    ticketTiers: [
+      ...prev.ticketTiers,
       {
-        url: "",
-        alt: "",
-        isMain: false,
-        order: prev.images.length,
+        name: "",
+        description: "",
+        price: "",
+        currency: "INR",
+        quantityTotal: 100,
+        minPerOrder: 1,
+        maxPerOrder: 10,
       },
     ],
   }));
 };
 
-const removeImage = (index: number) => {
-  setFormData((prev) => {
-    const updatedImages = prev.images.filter(
-      (_, imageIndex) => imageIndex !== index
-    );
+  const removeTicketTier = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      ticketTiers: prev.ticketTiers.filter(
+        (_, ticketIndex) => ticketIndex !== index
+      ),
+    }));
+  };
 
-    // If the main image was removed, make the first image main
-    if (
-      prev.images[index]?.isMain &&
-      updatedImages.length > 0
-    ) {
-      updatedImages[0].isMain = true;
+
+  const validateDateTime = () => {
+    const start = new Date(formData.startAt);
+    const end = new Date(formData.endAt);
+    const now = new Date();
+
+    if (start <= now) {
+      toast.error("Event start time must be in the future.");
+      return false;
     }
 
-    return {
-      ...prev,
-      images: updatedImages.map((image, imageIndex) => ({
-        ...image,
-        order: imageIndex,
-      })),
-    };
-  });
-};
+    if (end <= start) {
+      toast.error("Event end time must be after the start time.");
+      return false;
+    }
 
-const setMainImage = (index: number) => {
-  setFormData((prev) => ({
-    ...prev,
-    images: prev.images.map((image, imageIndex) => ({
-      ...image,
-      isMain: imageIndex === index,
-    })),
-  }));
-};
+    return true;
+  };
 
-
-const validateDateTime = () => {
-  const start = new Date(formData.startAt);
-  const end = new Date(formData.endAt);
-  const now = new Date();
-
-  if (start <= now) {
-    toast.error("Event start time must be in the future.");
-    return false;
-  }
-
-  if (end <= start) {
-    toast.error("Event end time must be after the start time.");
-    return false;
-  }
-
-  return true;
-};
-
-const handleSubmit = async (
-  event: SyntheticEvent<HTMLFormElement>
-) => {
-  event.preventDefault();
+  const handleSubmit = async (
+    event: SyntheticEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
 
     if (!validateDateTime()) {
+      return;
+    }
+
+    for (const ticket of formData.ticketTiers) {
+  if (ticket.price === "" || Number(ticket.price) < 0) {
+    toast.error(`Please enter a valid price for ${ticket.name || "ticket"}.`);
     return;
   }
+}
+
     try {
       const response = await createEvent(formData);
 
       setCreatedEventId(response.event._id);
 
-toast.success("Event created successfully!");
+      toast.success("Event created successfully!");
 
-} catch (error: any) {
+    } catch (error: any) {
       console.error(error);
 
       toast.error(
-  error.response?.data?.message ||
-    "Failed to create event"
-);
+        error.response?.data?.message ||
+        "Failed to create event"
+      );
     }
   };
 
@@ -207,19 +289,22 @@ toast.success("Event created successfully!");
     try {
       await publishEvent(createdEventId);
 
-toast.success("Event published successfully!");
+      toast.success("Event published successfully!");
 
       navigate("/events");
     } catch (error: any) {
       console.error(error);
 
-toast.error(
-  error.response?.data?.message ||
-    "Failed to publish event"
-);
+      toast.error(
+        error.response?.data?.message ||
+        "Failed to publish event"
+      );
 
     }
   };
+
+ 
+
   return (
     <section className="min-h-screen bg-brand-50 px-6 py-12">
       <div className="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow-sm">
@@ -426,19 +511,71 @@ toast.error(
                 </div>
               )}
 
-              {/* {selectedVenue && (
-                <p className="mt-2 text-sm text-brand-800">
-                  ✓ Selected: {selectedVenue.name}
-                </p>
-              )} */}
 
-              {/* {!selectedVenue && venueSearch.length >= 2 && (
-                <p className="mt-2 text-sm text-gray-500">
-                  Select a venue from the suggestions.
-                </p>
-              )} */}
             </div>
           )}
+
+          {/* Categories */}
+          <div>
+            <label className="mb-2 block font-semibold">
+              Category
+            </label>
+
+            <select
+              value={formData.categoryIds[0] || ""}
+              onChange={(event) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  categoryIds: event.target.value
+                    ? [event.target.value]
+                    : [],
+                }))
+              }
+              required
+              className="w-full rounded-lg border border-brand-100 px-4 py-2"
+            >
+              <option value="">Select a category</option>
+
+              {categories.map((category) => (
+                <option
+                  key={category._id}
+                  value={category._id}
+                >
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+
+          {/* Tags */}
+          <div>
+            <label className="mb-2 block font-semibold">
+              Tags
+            </label>
+
+            <input
+              type="text"
+              placeholder="music, live, festival"
+              className="w-full rounded-lg border border-brand-100 px-4 py-2"
+              onChange={(event) => {
+                const tags = event.target.value
+                  .split(",")
+                  .map((tag) => tag.trim())
+                  .filter(Boolean);
+
+                setFormData((prev) => ({
+                  ...prev,
+                  tags,
+                }));
+              }}
+            />
+
+            <p className="mt-1 text-sm text-brand-600">
+              Separate tags with commas.
+            </p>
+          </div>
+
 
           {/* Visibility */}
           <div>
@@ -558,6 +695,193 @@ toast.error(
                         Remove
                       </button>
                     )}
+
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Ticket Tiers */}
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <label className="font-semibold">
+                Ticket Tiers
+              </label>
+
+              <button
+                type="button"
+                onClick={addTicketTier}
+                className="rounded-lg bg-brand-100 px-4 py-2 text-sm
+                 font-semibold text-brand-900
+                 hover:bg-brand-200"
+              >
+                + Add Ticket Tier
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {formData.ticketTiers.map((ticket, index) => (
+                <div
+                  key={index}
+                  className="rounded-xl border border-brand-100 p-4"
+                >
+                  <div className="mb-4 flex items-center justify-between">
+                    <p className="font-semibold text-brand-900">
+                      Ticket Tier {index + 1}
+                    </p>
+
+                    {formData.ticketTiers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeTicketTier(index)}
+                        className="rounded-lg border border-red-200 px-4 py-2
+                         text-sm font-semibold text-red-600
+                         hover:bg-red-50"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+
+                    {/* Ticket Name */}
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold">
+                        Ticket Name
+                      </label>
+
+                      <input
+                        type="text"
+                        value={ticket.name}
+                        onChange={(event) =>
+                          handleTicketChange(
+                            index,
+                            "name",
+                            event.target.value
+                          )
+                        }
+                        required
+                        placeholder="General Entry"
+                        className="w-full rounded-lg border border-brand-100 px-4 py-2"
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold">
+                        Description
+                      </label>
+
+                      <input
+                        type="text"
+                        value={ticket.description}
+                        onChange={(event) =>
+                          handleTicketChange(
+                            index,
+                            "description",
+                            event.target.value
+                          )
+                        }
+                        placeholder="General event entry"
+                        className="w-full rounded-lg border border-brand-100 px-4 py-2"
+                      />
+                    </div>
+
+                    {/* Price + Quantity */}
+                    <div className="grid gap-4 md:grid-cols-2">
+
+                      <div>
+                        <label className="mb-2 block text-sm font-semibold">
+                          Price (₹)
+                        </label>
+
+                        <input
+                          type="number"
+                          min="0"
+                          value={ticket.price}
+                          onChange={(event) =>
+                            handleTicketChange(
+                              index,
+                              "price",
+                              event.target.value
+                            )
+                          }
+                          required
+                          className="w-full rounded-lg border border-brand-100 px-4 py-2"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-semibold">
+                          Total Quantity
+                        </label>
+
+                        <input
+                          type="number"
+                          min="1"
+                          value={ticket.quantityTotal}
+                          onChange={(event) =>
+                            handleTicketChange(
+                              index,
+                              "quantityTotal",
+                              event.target.value
+                            )
+                          }
+                          required
+                          className="w-full rounded-lg border border-brand-100 px-4 py-2"
+                        />
+                      </div>
+
+                    </div>
+
+                    {/* Min + Max */}
+                    <div className="grid gap-4 md:grid-cols-2">
+
+                      <div>
+                        <label className="mb-2 block text-sm font-semibold">
+                          Minimum Per Order
+                        </label>
+
+                        <input
+                          type="number"
+                          min="1"
+                          value={ticket.minPerOrder}
+                          onChange={(event) =>
+                            handleTicketChange(
+                              index,
+                              "minPerOrder",
+                              event.target.value
+                            )
+                          }
+                          required
+                          className="w-full rounded-lg border border-brand-100 px-4 py-2"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-semibold">
+                          Maximum Per Order
+                        </label>
+
+                        <input
+                          type="number"
+                          min="1"
+                          value={ticket.maxPerOrder}
+                          onChange={(event) =>
+                            handleTicketChange(
+                              index,
+                              "maxPerOrder",
+                              event.target.value
+                            )
+                          }
+                          required
+                          className="w-full rounded-lg border border-brand-100 px-4 py-2"
+                        />
+                      </div>
+
+                    </div>
 
                   </div>
                 </div>

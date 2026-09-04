@@ -6,7 +6,8 @@ import eventRoutes from "./routes/event.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import errorHandler from "./middleware/errorHandler.js";
 import venueRoutes from "./routes/venue.routes.js";
-
+import bookingRoutes from "./routes/booking.routes.js";
+import categoryRoutes from "./routes/category.routes.js";
 const app = express();
 
 app.use(
@@ -23,6 +24,8 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/venues", venueRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/categories", categoryRoutes);
 
 // Health check
 app.get("/", (req, res) => {
