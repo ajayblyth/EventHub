@@ -11,83 +11,87 @@ export async function createBooking(
     quantity: number;
   }[]
 ) {
-  const event = await Event.findOne({
-    _id: eventId,
-    status: "PUBLISHED",
-    visibility: "PUBLIC",
-  });
-
-  if (!event) {
-    throw new AppError("Event not found", 404);
-  }
-
-  if (event.startAt <= new Date()) {
-    throw new AppError(
-      "Tickets cannot be booked for this event",
-      400
-    );
-  }
-
-  if (!selectedTickets.length) {
-    throw new AppError(
-      "At least one ticket is required",
-      400
-    );
-  }
-
-  const bookingTickets = [];
-  let totalAmount = 0;
-
-  for (const selectedTicket of selectedTickets) {
-    const ticket = event.ticketTiers.find(
-      (tier: any) =>
-        tier._id.toString() === selectedTicket.ticketTierId
-    );
-
-    if (!ticket) {
-      throw new AppError("Ticket tier not found", 404);
-    }
-
-    const available =
-      ticket.quantityTotal - ticket.quantitySold;
-
-    if (selectedTicket.quantity > available) {
-      throw new AppError(
-        `Only ${available} ${ticket.name} tickets are available`,
-        400
-      );
-    }
-
-    if (
-      selectedTicket.quantity < ticket.minPerOrder ||
-      selectedTicket.quantity > ticket.maxPerOrder
-    ) {
-      throw new AppError(
-        `Invalid quantity for ${ticket.name}`,
-        400
-      );
-    }
-
-    const subtotal =
-      ticket.price * selectedTicket.quantity;
-
-    bookingTickets.push({
-      ticketTierId: ticket._id,
-      name: ticket.name,
-      price: ticket.price,
-      quantity: selectedTicket.quantity,
-      subtotal,
-    });
-
-    totalAmount += subtotal;
-
-    ticket.quantitySold += selectedTicket.quantity;
-  }
-
   const session = await mongoose.startSession();
 
   try {
     session.startTransaction();
+
+    const event = await Event.findOne({
+      _id: eventId,
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+    }).session(session);
+
+    if (!event) {
+      throw new AppError("Event not found", 404);
+    }
+
+    if (event.startAt <= new Date()) {
+      throw new AppError(
+        "Tickets cannot be booked for this event",
+        400
+      );
+    }
+
+    if (!selectedTickets.length) {
+      throw new AppError(
+        "At least one ticket is required",
+        400
+      );
+    }
+
+    const bookingTickets = [];
+    let totalAmount = 0;
+
+    for (const selectedTicket of selectedTickets) {
+      const ticket = event.ticketTiers.find(
+        (tier: any) =>
+          tier._id.toString() ===
+          selectedTicket.ticketTierId
+      );
+
+      if (!ticket) {
+        throw new AppError(
+          "Ticket tier not found",
+          404
+        );
+      }
+
+      const available =
+        ticket.quantityTotal - ticket.quantitySold;
+
+      if (selectedTicket.quantity > available) {
+        throw new AppError(
+          `Only ${available} ${ticket.name} tickets are available`,
+          400
+        );
+      }
+
+      if (
+        selectedTicket.quantity < ticket.minPerOrder ||
+        selectedTicket.quantity > ticket.maxPerOrder
+      ) {
+        throw new AppError(
+          `Invalid quantity for ${ticket.name}`,
+          400
+        );
+      }
+
+      const subtotal =
+        ticket.price * selectedTicket.quantity;
+
+      bookingTickets.push({
+        ticketTierId: ticket._id,
+        name: ticket.name,
+        price: ticket.price,
+        quantity: selectedTicket.quantity,
+        subtotal,
+      });
+
+      totalAmount += subtotal;
+
+      ticket.quantitySold += selectedTicket.quantity;
+    }
 
     await event.save({ session });
 
@@ -114,7 +118,6 @@ export async function createBooking(
     await session.endSession();
   }
 }
-
 
 
 //get bookings
@@ -211,11 +214,16 @@ export async function cancelBooking(
   const bookings = await Booking.find({
     eventId,
   })
-    .populate("userId", "name email")
+.populate("userId", "firstName lastName email")
     .sort({ createdAt: -1 });
 
-  return bookings;
-}
+return {
+  event: {
+    _id: event._id,
+    title: event.title,
+  },
+  bookings,
+};}
 
 /*
 

@@ -8,7 +8,7 @@ import {
   deleteEventController,
   publishEventController,
   getMyEventsController,
-  getMyEventByIdController
+  getMyEventByIdController, cancelEventController
 } from "../controllers/event.controller.js";
 
 import { protect } from "../middleware/auth.js";
@@ -49,6 +49,13 @@ router.patch(
   validate(updateEventSchema),
   updateEventController
 );
+
+router.patch(
+  "/:id/cancel",
+  protect,
+  cancelEventController
+);
+
 
 router.delete(
   "/:id",

@@ -142,8 +142,61 @@ export async function deleteEvent(
     throw new AppError("Event not found or access denied", 404);
   }
 
+  const hasSoldTickets = event.ticketTiers.some(
+    (ticket: any) => ticket.quantitySold > 0
+  );
+
+  if (hasSoldTickets) {
+    throw new AppError(
+      "Event cannot be deleted because tickets have been sold. Cancel the event instead.",
+      400
+    );
+  }
+
+  if (
+    event.status !== "DRAFT" &&
+    event.status !== "PUBLISHED"
+  ) {
+    throw new AppError(
+      "This event cannot be deleted",
+      400
+    );
+  }
+
   await event.deleteOne();
 }
+
+
+export async function cancelEvent(
+  eventId: string,
+  userId: string
+) {
+  const event = await Event.findOne({
+    _id: eventId,
+    organizerId: userId,
+  });
+
+  if (!event) {
+    throw new AppError(
+      "Event not found or access denied",
+      404
+    );
+  }
+
+  if (event.status !== "PUBLISHED") {
+    throw new AppError(
+      "Only published events can be cancelled",
+      400
+    );
+  }
+
+  event.status = "CANCELLED";
+
+  await event.save();
+
+  return event;
+}
+
 
 //publish
 export async function publishEvent(

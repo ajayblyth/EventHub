@@ -25,7 +25,7 @@ _id: user._id,
       },
     });
   } catch (error) {
-    next(error);
+    next(error);   
   }
 }
 
@@ -44,7 +44,6 @@ export async function login(
         secure: process.env.NODE_ENV === "production",
 
         //send this cookie only over HTTPS when we're in production. We normally use HTTP locally:
-        // sameSite: "strict",
 
         sameSite: "lax",
         // tells the browser to be very restrictive about sending your authentication cookie when a request comes from another site, helping protect against CSRF.
@@ -92,6 +91,19 @@ export async function getMe(
     next(error);
   }
 }
+/*
+getMe is the controller for /me; protect() identifies the logged-in user and puts their JWT data into req.user, 
+then getMe takes req.user!.userId and uses that ID to fetch the actual user from the database.
+TypeScript non-null assertion operator:
+!
+It tells TypeScript:
+"I know req.user exists here. Don't complain that it might be undefined."
+Why can we be confident?
+Because this route runs:
+router.get("/me", protect, getMe);
+and protect() does:
+req.user = decoded;
+next();*/
 
 
 export async function refreshToken(

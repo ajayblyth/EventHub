@@ -78,14 +78,15 @@ export async function getEventBookingsController(
   try {
     const organizerId = req.user!.userId;
 
-    const bookings = await getEventBookings(
-      req.params.eventId as string,
-      organizerId
-    );
+ const result = await getEventBookings(
+  req.params.eventId as string,
+  organizerId
+);
 
-    res.status(200).json({
-      bookings,
-    });
+res.status(200).json({
+  event: result.event,
+  bookings: result.bookings,
+});
   } catch (error) {
     next(error);
   }

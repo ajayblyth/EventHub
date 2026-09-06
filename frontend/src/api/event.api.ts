@@ -8,16 +8,6 @@ export const getEvents = async () => {
   return response.data;
 };
 
-// export const getMyEvents = async () => {
-//   const response = await axios.get(
-//     `${API_URL}/my-events`,
-//     {
-//       withCredentials: true,
-//     }
-//   );
-
-//   return response.data;
-// };
 
 export const getMyEvents = async () => {
   console.log("Calling getMyEvents with Axios");
@@ -77,6 +67,15 @@ export const deleteEvent = async (id: string) => {
 
   return response.data;
 };
+
+
+export async function cancelEvent(eventId: string) {
+  const response = await api.patch(
+    `/events/${eventId}/cancel`
+  );
+
+  return response.data;
+}
 
 export const publishEvent = async (id: string) => {
   const response = await api.post(

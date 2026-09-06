@@ -10,7 +10,7 @@ import {
 
 import {
   deleteEvent,
-  publishEvent,
+  publishEvent, cancelEvent
 } from "../../api/event.api";
 
 import { Link } from "react-router-dom";
@@ -62,6 +62,30 @@ function MyEventsPage() {
       );
     }
   };
+
+
+  const handleCancel = async (id: string) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to cancel this event?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await cancelEvent(id);
+
+    toast.success("Event cancelled successfully!");
+
+    dispatch(fetchMyEvents());
+  } catch (error: any) {
+    toast.error(
+      error.response?.data?.message ||
+        "Failed to cancel event"
+    );
+  }
+};
+
+
 
   if (isLoading) {
     return <p className="p-6">Loading your events...</p>;
@@ -180,21 +204,42 @@ return (
               </p>
 
               {/* Ticket Statistics */}
-              <div className="mt-4 rounded-lg bg-brand-50 p-4">
+         <div className="mt-4 rounded-lg bg-brand-50 p-4">
+  <p className="text-sm text-brand-700">
+    Tickets Sold
+  </p>
 
-                <p className="text-sm text-brand-700">
-                  Tickets Sold
-                </p>
+  <p className="mt-1 text-lg font-bold text-brand-900">
+    {totalSold} / {totalCapacity}
+  </p>
 
-                <p className="mt-1 text-lg font-bold text-brand-900">
-                  {totalSold} / {totalCapacity}
-                </p>
+  <p className="mt-2 text-sm text-brand-600">
+    {percentFull}% Full
+  </p>
+</div>
 
-                <p className="mt-2 text-sm text-brand-600">
-                  {percentFull}% Full
-                </p>
+<div className="mt-4 rounded-lg border border-brand-100 p-4">
+  <p className="text-sm font-semibold text-brand-800">
+    Ticket Sales
+  </p>
 
-              </div>
+  <div className="mt-3 space-y-2">
+    {event.ticketTiers?.map((ticket) => (
+      <div
+        key={ticket._id}
+        className="flex justify-between text-sm"
+      >
+        <span className="text-brand-700">
+          {ticket.name}
+        </span>
+
+        <span className="font-medium text-brand-900">
+          {ticket.quantitySold} / {ticket.quantityTotal} sold
+        </span>
+      </div>
+    ))}
+  </div>
+</div>
 
               {/* Actions */}
               <div className="mt-5 flex flex-wrap gap-2">
@@ -231,19 +276,31 @@ return (
                 )}
 
                 {/* Delete */}
-                {(event.status === "DRAFT" ||
-                  event.status === "PUBLISHED") && (
-                  <button
-                    onClick={() =>
-                      handleDelete(event._id)
-                    }
-                    className="rounded-lg border border-red-200
-                               px-3 py-2 text-sm font-semibold
-                               text-red-600 hover:bg-red-50"
-                  >
-                    Delete
-                  </button>
-                )}
+              {(event.status === "DRAFT" ||
+  event.status === "PUBLISHED") &&
+  (totalSold > 0 ? (
+    <button
+      onClick={() =>
+        handleCancel(event._id)
+      }
+      className="rounded-lg border border-red-200
+                 px-3 py-2 text-sm font-semibold
+                 text-red-600 hover:bg-red-50"
+    >
+      Cancel Event
+    </button>
+  ) : (
+    <button
+      onClick={() =>
+        handleDelete(event._id)
+      }
+      className="rounded-lg border border-red-200
+                 px-3 py-2 text-sm font-semibold
+                 text-red-600 hover:bg-red-50"
+    >
+      Delete
+    </button>
+  ))}
 
                 {/* Attendees */}
                 <Link

@@ -7,5 +7,5 @@ export async function getEventBookings(
     `/bookings/event/${eventId}`
   );
 
-  return response.data.bookings;
+  return response.data;
 }

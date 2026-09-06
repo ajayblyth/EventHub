@@ -5,7 +5,7 @@ import {
   getEvents, getEventById,
   updateEvent,
   deleteEvent, publishEvent,
-  getMyEvents, getMyEventById,
+  getMyEvents, getMyEventById, cancelEvent
 } from "../services/event.service.js";
 
 import AppError from "../utils/AppError.js";
@@ -156,6 +156,29 @@ export async function deleteEventController(
     res.status(200).json({
       success: true,
       message: "Event deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+//cancel
+export async function cancelEventController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const organizerId = req.user!.userId;
+
+    const event = await cancelEvent(
+      req.params.id as string,
+      organizerId
+    );
+
+    res.status(200).json({
+      message: "Event cancelled successfully",
+      event,
     });
   } catch (error) {
     next(error);
