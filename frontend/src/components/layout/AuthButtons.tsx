@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState, useEffect } from "react";
+
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../../store/store";
@@ -14,6 +15,34 @@ function AuthButtons() {
   );
 
   const [isOpen, setIsOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userDropdownRef.current &&
+        !userDropdownRef.current.contains(
+          event.target as Node
+        )
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
+  }, []);
+
+
 
   const handleLogout = async () => {
     try {
@@ -32,7 +61,10 @@ function AuthButtons() {
 
   if (isAuthenticated && user) {
     return (
-      <div className="relative">
+      <div
+        ref={userDropdownRef}
+        className="relative"
+      >
         {/* User Dropdown Button */}
         <button
           type="button"
@@ -41,7 +73,7 @@ function AuthButtons() {
                      px-4 py-2 font-semibold text-brand-900
                      transition-colors hover:bg-brand-50"
         >
-{user.firstName}
+          {user.firstName}
           <span className="text-sm">
             {isOpen ? "▲" : "▼"}
           </span>
