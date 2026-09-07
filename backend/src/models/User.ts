@@ -43,7 +43,17 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+verificationToken: {
+  type: String,
+  default: null,
+  select: false,
+},
 
+verificationTokenExpires: {
+  type: Date,
+  default: null,
+  select: false,
+},
     profileImage: {
       type: String,
       default: null,

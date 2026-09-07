@@ -283,25 +283,26 @@ const addTicketTier = () => {
     }
   };
 
-  const handlePublish = async () => {
-    if (!createdEventId) return;
 
-    try {
-      await publishEvent(createdEventId);
+  
+const handlePublish = async () => {
+  if (!createdEventId) return;
 
-      toast.success("Event published successfully!");
+  try {
+    await publishEvent(createdEventId);
 
-      navigate("/events");
-    } catch (error: any) {
-      console.error(error);
+    toast.success("Event published successfully!");
 
-      toast.error(
-        error.response?.data?.message ||
+    navigate("/events");
+  } catch (error: any) {
+    console.error(error);
+
+    toast.error(
+      error.response?.data?.message ||
         "Failed to publish event"
-      );
-
-    }
-  };
+    );
+  }
+};
 
  
 

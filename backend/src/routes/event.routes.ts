@@ -12,6 +12,7 @@ import {
 } from "../controllers/event.controller.js";
 
 import { protect } from "../middleware/auth.js";
+import { authorize } from "../middleware/authorize.js";
 import validate from "../middleware/validate.js";
 
 import { createEventSchema, updateEventSchema } from "../validators/event.validator.js";
@@ -35,10 +36,10 @@ router.get(
 
 
 router.get("/:id", getEventByIdController);
-
 router.post(
   "/",
   protect,
+  authorize("organizer"),
   validate(createEventSchema),
   createEventController
 );
@@ -46,6 +47,7 @@ router.post(
 router.patch(
   "/:id",
   protect,
+  authorize("organizer"),
   validate(updateEventSchema),
   updateEventController
 );
@@ -53,22 +55,23 @@ router.patch(
 router.patch(
   "/:id/cancel",
   protect,
+  authorize("organizer"),
   cancelEventController
 );
-
 
 router.delete(
   "/:id",
   protect,
+  authorize("organizer"),
   deleteEventController
 );
 
 router.post(
   "/:id/publish",
   protect,
+  authorize("organizer"),
   publishEventController
 );
-
 
 
 export default router;

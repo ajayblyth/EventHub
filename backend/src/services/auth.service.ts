@@ -10,6 +10,7 @@ import {
 } from "../utils/jwt.js";
 
 import jwt from "jsonwebtoken";
+import crypto from "node:crypto";
 
 export async function registerUser(data: {
   firstName: string;
@@ -32,10 +33,13 @@ export async function registerUser(data: {
     email: data.email,
     password: hashedPassword,
     roles: data.roles ?? ["attendee"],
+
   });
 
   return user;
 }
+
+
 
 export async function loginUser(data: {
   email: string;
@@ -124,6 +128,59 @@ export async function getCurrentUser(userId: string) {
   if (!user) {
     throw new AppError("User not found", 404);
   }
+
+  return user;
+}
+
+export async function becomeOrganizer(userId: string) {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (user.roles.includes("organizer")) {
+    throw new AppError("User is already an organizer", 400);
+  }
+
+  user.roles.push("organizer");
+
+  await user.save();
+
+  const accessToken = generateAccessToken(
+    user._id.toString(),
+    user.roles
+  );
+
+  return {
+    user,
+    accessToken,
+  };
+}
+
+export async function verifyEmail(token: string) {
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  const user = await User.findOne({
+    verificationToken: hashedToken,
+    verificationTokenExpires: { $gt: new Date() },
+  }).select("+verificationToken +verificationTokenExpires");
+
+  if (!user) {
+    throw new AppError(
+      "Invalid or expired verification link",
+      400
+    );
+  }
+
+  user.isVerified = true;
+  user.verificationToken = null;
+  user.verificationTokenExpires = null;
+
+  await user.save();
 
   return user;
 }

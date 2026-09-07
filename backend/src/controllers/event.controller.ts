@@ -191,6 +191,8 @@ export async function publishEventController(
   res: Response,
   next: NextFunction
 ) {
+
+
   try {
     const event = await publishEvent(
       req.params.id as string,

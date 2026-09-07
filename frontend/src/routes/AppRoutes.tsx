@@ -15,6 +15,9 @@ import CheckoutPage from "../pages/booking/CheckoutPage";
 import MyBookingsPage from "../pages/booking/MyBookingsPage";
 import FakePaymentPage from "../pages/booking/FakePaymentPage";
 import EventAttendeesPage from "../pages/organizer/EventAttendeesPage";
+import VerifyEmailPage from "../pages/auth/VerifyEmailPage";
+
+
 
 function AppRoutes() {
   return (
@@ -24,7 +27,10 @@ function AppRoutes() {
         <Route path="/" element={<EventsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<SignupPage />} />
-
+        <Route
+          path="/verify-email"
+          element={<VerifyEmailPage />}
+        />
         {/* Public */}
         <Route path="/events" element={<EventsPage />} />
         <Route path="/events/:id" element={<EventDetailsPage />} />

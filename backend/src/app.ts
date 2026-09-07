@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-
+import helmet from "helmet";
 import eventRoutes from "./routes/event.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import errorHandler from "./middleware/errorHandler.js";
@@ -9,6 +9,10 @@ import venueRoutes from "./routes/venue.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 const app = express();
+
+app.use(helmet());
+app.disable("x-powered-by");
+
 
 app.use(
   cors({

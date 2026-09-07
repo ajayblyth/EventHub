@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
-import { registerUser, loginUser, getCurrentUser } from "../services/auth.service.js";
+import { registerUser, loginUser, getCurrentUser , becomeOrganizer} from "../services/auth.service.js";
 import AppError from "../utils/AppError.js";
 import { refreshAccessToken } from "../services/auth.service.js";
 
-
+import { verifyEmail } from "../services/auth.service.js";
 
 export async function register(
   req: Request,
@@ -73,6 +73,34 @@ export async function login(
   }
 }
 
+
+
+export async function becomeOrganizerController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const result = await becomeOrganizer(req.user!.userId);
+
+    res
+      .cookie("accessToken", result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 15 * 60 * 1000,
+      })
+      .status(200)
+      .json({
+        success: true,
+        message: "Organizer access enabled",
+        data: result.user,
+      });
+  } catch (error) {
+    next(error);
+  }
+}
 
 
 export async function getMe(
@@ -151,6 +179,29 @@ export function logout(
         success: true,
         message: "Logout successful",
       });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function verifyEmailController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const token = req.query.token;
+
+    if (typeof token !== "string" || !token) {
+      throw new AppError("Verification token is required", 400);
+    }
+
+    await verifyEmail(token);
+
+    res.status(200).json({
+      success: true,
+      message: "Email verified successfully",
+    });
   } catch (error) {
     next(error);
   }

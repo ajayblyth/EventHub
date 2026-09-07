@@ -12,10 +12,8 @@ let failedRequests: {
   reject: (error: unknown) => void;
 }[] = [];
 
-//Creates an empty array..Its purpose is to temporarily hold requests that receive 401 while another request is already refreshing the access token.
-const processQueue = (error: unknown = null) => { //It accepts an optional error.null → refresh succeeded.error exists → refresh failed
-
-
+// Holds requests that receive 401 while another request is refreshing the access token.
+const processQueue = (error: unknown = null) => {
   failedRequests.forEach((request) => {
     if (error) {
       request.reject(error);
@@ -32,13 +30,13 @@ api.interceptors.response.use(
 
   async (error) => {
     const originalRequest = error.config;
+
     if (
       error.response?.status !== 401 ||
       originalRequest._retry ||
       originalRequest.url?.includes("/auth/refresh-token") ||
       originalRequest.url?.includes("/auth/login") ||
-        originalRequest.url?.includes("/auth/me")
-
+      originalRequest.url?.includes("/auth/me")
     ) {
       return Promise.reject(error);
     }

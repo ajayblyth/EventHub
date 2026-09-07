@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";import {
 } from "react-router-dom";
 import AuthButtons from "./AuthButtons";
 import { getCategories } from "../../api/category.api";
+import { becomeOrganizer } from "../../api/auth.api";
+
 
 function Navbar() {
   const navigate = useNavigate();
@@ -72,6 +74,17 @@ function Navbar() {
       `/?search=${encodeURIComponent(query)}`
     );
   };
+
+
+  const handleCreateEvent = async () => {
+  try {
+    await becomeOrganizer();
+
+    navigate("/events/create");
+  } catch (error) {
+    console.error("Failed to enable organizer access:", error);
+  }
+};
 
   return (
     <header className="relative z-50 border-b border-brand-100 bg-white">
@@ -159,9 +172,7 @@ function Navbar() {
             {/* Create Event */}
             <button
               type="button"
-              onClick={() =>
-                navigate("/events/create")
-              }
+             onClick={handleCreateEvent}
               className="whitespace-nowrap rounded-lg
                          bg-brand-300 px-4 py-2
                          font-semibold text-brand-900

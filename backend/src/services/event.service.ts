@@ -1,6 +1,10 @@
 import Event from "../models/Event.js";
 import AppError from "../utils/AppError.js";
 
+import User from "../models/User.js";
+import { generateVerificationToken } from "../utils/verificationToken.js";
+import { sendEmail } from "../utils/email.js";
+
 export async function createEvent(
   data: any, //need to change
   userId: string
@@ -64,6 +68,9 @@ export async function getMyEvents(userId: string) {
 
   return events;
 }
+
+
+
 export async function getMyEventById(
   eventId: string,
   userId: string
@@ -223,13 +230,57 @@ export async function publishEvent(
     );
   }
 
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  if (!user.isVerified) {
+    const { token, hashedToken } = generateVerificationToken();
+
+    user.verificationToken = hashedToken;
+    user.verificationTokenExpires = new Date(
+      Date.now() + 24 * 60 * 60 * 1000
+    );
+
+    await user.save();
+
+const verificationUrl =
+  `http://localhost:5173/verify-email?token=${token}&eventId=${event._id}`;
+  
+  await sendEmail(
+      user.email,
+      "Verify your email to publish your EventHub event",
+      `
+        <h2>Verify your email</h2>
+
+        <p>
+          Please verify your email address before publishing your event on EventHub.
+        </p>
+
+        <p>
+          <a href="${verificationUrl}">
+            Verify Email
+          </a>
+        </p>
+
+        <p>This link will expire in 24 hours.</p>
+      `
+    );
+
+    throw new AppError(
+      "Please verify your email before publishing your event. A verification email has been sent.",
+      403
+    );
+  }
+
   event.status = "PUBLISHED";
 
   await event.save();
 
   return event;
 }
-
 
 
 /*
