@@ -38,13 +38,17 @@ export const fetchCurrentUser = createAsyncThunk(
       const response = await getMe();
 
       return response.data;
-    } catch (error) {
-      return rejectWithValue("Not authenticated");
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        return rejectWithValue("Not authenticated");
+      }
+
+      return rejectWithValue("Failed to fetch current user");
     }
   }
 );
 
-const authSlice = createSlice({
+const authSlice = createSlice({   
   name: "auth",
   initialState,
 

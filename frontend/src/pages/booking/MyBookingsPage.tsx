@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
+import { useNavigate } from "react-router-dom";
 
 function MyBookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadBookings = async () => {
@@ -15,7 +18,7 @@ function MyBookingsPage() {
       } catch (error: any) {
         setError(
           error.response?.data?.message ||
-            "Failed to load bookings"
+          "Failed to load bookings"
         );
       } finally {
         setIsLoading(false);
@@ -41,19 +44,28 @@ function MyBookingsPage() {
         previous.map((booking) =>
           booking._id === bookingId
             ? {
-                ...booking,
-                status: "CANCELLED",
-              }
+              ...booking,
+              status: "CANCELLED",
+            }
             : booking
         )
       );
     } catch (error: any) {
       alert(
         error.response?.data?.message ||
-          "Failed to cancel booking"
+        "Failed to cancel booking"
       );
     }
   };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
 
   if (isLoading) {
     return (
@@ -72,12 +84,17 @@ function MyBookingsPage() {
   }
 
   return (
-    <section className="min-h-screen bg-brand-50 px-6 py-12">
-      <div className="mx-auto max-w-4xl">
+ <section className="min-h-screen bg-brand-50 px-6 pt-4 pb-6">
 
-        <h1 className="text-3xl font-bold text-brand-900">
-          My Bookings
-        </h1>
+  <div className="mx-auto max-w-5xl">
+
+    {/* Page Header */}
+<div className="mb-1 inline-block rounded-xl bg-brand-100 px-5 py-3">
+        <h1 className="text-2xl font-bold tracking-tight text-brand-800">
+        My Bookings
+      </h1>
+    </div>
+
 
         {bookings.length === 0 ? (
           <div className="mt-6 rounded-2xl bg-white p-8 text-center shadow-sm">
@@ -86,68 +103,81 @@ function MyBookingsPage() {
             </p>
           </div>
         ) : (
-          <div className="mt-6 space-y-4">
+          <div className="mt-4 space-y-4">
+            {bookings.map((booking) => {
+              const event = booking.eventId;
 
-            {bookings.map((booking) => (
-              <div
-                key={booking._id}
-                className="rounded-2xl bg-white p-6 shadow-sm"
-              >
+              return (
+                <div
+                  key={booking._id}
+                  className="overflow-hidden rounded-2xl bg-white shadow-sm"
+                >
 
-                <h2 className="text-xl font-bold text-brand-900">
-                  {booking.eventId?.title || "Event"}
-                </h2>
+                  {/* Header */}
+                  <div className="flex items-start justify-between border-b border-brand-100 p-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-brand-900">
+                        {event?.title || "Event"}
+                      </h2>
 
-                <div className="mt-4 space-y-2">
-                  {booking.tickets.map(
-                    (ticket: any) => (
-                      <div
-                        key={ticket.ticketTierId}
-                        className="flex justify-between text-sm"
+                      <p className="mt-1 text-sm text-brand-500">
+                        Booking ID: #{booking._id}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${booking.status === "CONFIRMED"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                        }`}
+                    >
+                      {booking.status}
+                    </span>
+                  </div>
+
+                  {/* Booking Information */}
+                  <div className="border-b border-brand-100 p-6">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-brand-500">
+                        Event Date
+                      </p>
+
+                      <p className="mt-1 font-medium text-brand-900">
+                        {event?.startAt
+                          ? formatDate(event.startAt)
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 p-6">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(`/my-bookings/${booking._id}`)
+                      }
+                      className="rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-900"
+                    >
+                      View Ticket
+                    </button>
+
+                    {booking.status === "CONFIRMED" && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCancelBooking(booking._id)
+                        }
+                        className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                       >
-                        <span className="text-brand-700">
-                          {ticket.name} ×{" "}
-                          {ticket.quantity}
-                        </span>
+                        Cancel Booking
+                      </button>
+                    )}
+                  </div>
 
-                        <span className="font-semibold text-brand-800">
-                          ₹{ticket.subtotal}
-                        </span>
-                      </div>
-                    )
-                  )}
                 </div>
-
-                <div className="mt-4 flex justify-between border-t border-brand-100 pt-4">
-                  <span className="font-semibold text-brand-900">
-                    Total
-                  </span>
-
-                  <span className="font-bold text-brand-800">
-                    ₹{booking.totalAmount}
-                  </span>
-                </div>
-
-                <p className="mt-3 text-sm text-brand-600">
-                  Status: {booking.status}
-                </p>
-
-                {booking.status === "CONFIRMED" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleCancelBooking(booking._id)
-                    }
-                    className="mt-4 rounded-lg border border-red-200 px-4 py-2
-                               text-sm font-semibold text-red-600
-                               transition hover:bg-red-50"
-                  >
-                    Cancel Booking
-                  </button>
-                )}
-
-              </div>
-            ))}
+              );
+            })}
 
           </div>
         )}

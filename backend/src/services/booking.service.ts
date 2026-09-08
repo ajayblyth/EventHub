@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Event from "../models/Event.js";
 import Booking from "../models/Booking.js";
 import AppError from "../utils/AppError.js";
+import { generateBookingQrCode } from "../utils/qrCode.js";
 
 export async function createBooking(
   userId: string,
@@ -126,7 +127,14 @@ export async function getMyBookings(userId: string) {
   const bookings = await Booking.find({
     userId,
   })
-    .populate("eventId", "title startAt endAt")
+    .populate({
+      path: "eventId",
+      select: "title startAt endAt venueId",
+      populate: {
+        path: "venueId",
+        select: "name address",
+      },
+    })
     .sort({ createdAt: -1 });
 
   return bookings;
@@ -224,6 +232,71 @@ return {
   },
   bookings,
 };}
+
+
+
+export async function getBookingById(
+  userId: string,
+  bookingId: string
+) {
+  const booking = await Booking.findOne({
+    _id: bookingId,
+    userId,
+  }).populate({
+    path: "eventId",
+    select: "title startAt endAt venueId",
+    populate: {
+      path: "venueId",
+      select: "name address",
+    },
+  });
+
+  if (!booking) {
+    throw new AppError(
+      "Booking not found",
+      404
+    );
+  }
+
+  const qrCode = await generateBookingQrCode(
+    booking._id.toString()
+  );
+
+  return {
+    booking,
+    qrCode,
+  };
+}
+
+// export async function getBookingById(
+//   userId: string,
+//   bookingId: string
+// ) {
+//   const booking = await Booking.findOne({
+//     _id: bookingId,
+//     userId,
+//   }).populate({
+//     path: "eventId",
+//     select: "title startAt endAt venueId",
+//     populate: {
+//       path: "venueId",
+//       select: "name address",
+//     },
+//   });
+
+//   if (!booking) {
+//     throw new AppError(
+//       "Booking not found",
+//       404
+//     );
+//   }
+
+//   return booking;
+// }
+
+
+
+
 
 /*
 

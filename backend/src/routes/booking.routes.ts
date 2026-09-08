@@ -4,7 +4,9 @@ import {
   createBookingController,
   getMyBookingsController,
   cancelBookingController,
-  getEventBookingsController
+  getEventBookingsController,
+  getBookingByIdController,
+  downloadTicketPdfController,
 } from "../controllers/booking.controller.js";
 
 import validate from "../middleware/validate.js";
@@ -20,14 +22,11 @@ router.post(
   createBookingController
 );
 
-
 router.get(
   "/my-bookings",
   protect,
   getMyBookingsController
 );
-
-
 
 router.get(
   "/event/:eventId",
@@ -35,6 +34,19 @@ router.get(
   authorize("organizer"),
   getEventBookingsController
 );
+
+router.get(
+  "/:id/pdf",
+  protect,
+  downloadTicketPdfController
+);
+
+router.get(
+  "/:id",
+  protect,
+  getBookingByIdController
+);
+
 
 
 router.delete(

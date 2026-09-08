@@ -159,6 +159,10 @@ export const updateEventSchema = z
       .boolean()
       .optional(),
 
+
+      venueId: z.string().optional(),
+
+      
     categoryIds: z
       .array(z.string())
       .optional(),

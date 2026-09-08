@@ -1,3 +1,4 @@
+
 import { Route, Routes } from "react-router-dom";
 
 import MainLayout from "../layouts/MainLayout";
@@ -13,11 +14,10 @@ import MyEventsPage from "../pages/events/MyEventsPage";
 import EditEventPage from "../pages/events/EditEventPage";
 import CheckoutPage from "../pages/booking/CheckoutPage";
 import MyBookingsPage from "../pages/booking/MyBookingsPage";
+import TicketDetailsPage from "../pages/booking/TicketDetailsPage";
 import FakePaymentPage from "../pages/booking/FakePaymentPage";
 import EventAttendeesPage from "../pages/organizer/EventAttendeesPage";
 import VerifyEmailPage from "../pages/auth/VerifyEmailPage";
-
-
 
 function AppRoutes() {
   return (
@@ -31,14 +31,21 @@ function AppRoutes() {
           path="/verify-email"
           element={<VerifyEmailPage />}
         />
+
         {/* Public */}
         <Route path="/events" element={<EventsPage />} />
-        <Route path="/events/:id" element={<EventDetailsPage />} />
+        <Route
+          path="/events/:id"
+          element={<EventDetailsPage />}
+        />
 
         {/* Protected */}
         <Route element={<ProtectedRoute />}>
 
-          <Route path="/profile" element={<Profile />} />
+          <Route
+            path="/profile"
+            element={<Profile />}
+          />
 
           <Route
             path="/events/create"
@@ -65,6 +72,12 @@ function AppRoutes() {
             element={<MyBookingsPage />}
           />
 
+
+          <Route
+            path="/my-bookings/:id"
+            element={<TicketDetailsPage />}
+          />
+
           <Route
             path="/payment"
             element={<FakePaymentPage />}
@@ -82,3 +95,4 @@ function AppRoutes() {
 }
 
 export default AppRoutes;
+
