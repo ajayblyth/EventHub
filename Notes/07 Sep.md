@@ -1,6 +1,25 @@
 dropdown stays open even when we click elsewhere
 
 solution: Yes. useRef is useful here because we need to know whether the user's click happened inside or outside a particular dropdown.
+==================================
+what we did today
+
+### Work Done Today
+
+* Completed the **security and authentication module** for the EventHub project.
+* Implemented and tested **email verification** for users.
+* Added verification token generation using secure hashing and token expiry.
+* Integrated **Resend** for sending verification emails.
+* Implemented verification flow where an unverified organizer must verify their email before publishing an event.
+* Tested the complete flow: **Publish → Verification Email → Verify Email → `isVerified: true` → Publish Event**.
+* Implemented **JWT access and refresh token** handling with HTTP-only cookies.
+* Added automatic access-token refresh using an Axios response interceptor.
+* Implemented **role-based authorization** for attendee and organizer roles.
+* Completed the **Become Organizer** flow while retaining the attendee role.
+* Verified event visibility rules for **PUBLIC, PRIVATE, and UNLISTED** events.
+* Confirmed that only **PUBLISHED + PUBLIC** events appear on the public Discover Events page.
+* Cleaned temporary debugging code from the authentication and email flow.
+* Completed the security work on the `feature/security` branch and prepared it for pushing to the repository.
 
 
 ====================================
