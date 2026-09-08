@@ -3,7 +3,13 @@ import Event from "../models/Event.js";
 import Booking from "../models/Booking.js";
 import AppError from "../utils/AppError.js";
 import { generateBookingQrCode } from "../utils/qrCode.js";
+import User from "../models/User.js";
+import {
+  sendBookingConfirmationEmail,
+  sendBookingCancellationEmail, } from "../utils/email.js";
 
+
+// createBooking
 export async function createBooking(
   userId: string,
   eventId: string,
@@ -109,9 +115,46 @@ export async function createBooking(
       { session }
     );
 
+    if (!booking) {
+      throw new AppError(
+        "Failed to create booking",
+        500
+      );
+    }
+
     await session.commitTransaction();
 
+    const user = await User.findById(userId);
+
+    if (user) {
+      const bookingForEmail = await Booking.findById(
+        booking._id.toString()
+      ).populate({
+        path: "eventId",
+        select: "title startAt endAt venueId",
+        populate: {
+          path: "venueId",
+          select: "name address",
+        },
+      });
+
+      if (bookingForEmail) {
+        try {
+          await sendBookingConfirmationEmail(
+            user.email,
+            bookingForEmail
+          );
+        } catch (emailError) {
+          console.error(
+            "BOOKING CONFIRMATION EMAIL ERROR:",
+            emailError
+          );
+        }
+      }
+    }
+
     return booking;
+
   } catch (error) {
     await session.abortTransaction();
     throw error;
@@ -141,6 +184,7 @@ export async function getMyBookings(userId: string) {
 }
 
 
+// cancel booking
 export async function cancelBooking(
   userId: string,
   bookingId: string
@@ -190,6 +234,35 @@ export async function cancelBooking(
 
     await session.commitTransaction();
 
+    const user = await User.findById(userId);
+
+    if (user) {
+      const bookingForEmail = await Booking.findById(
+        booking._id.toString()
+      ).populate({
+        path: "eventId",
+        select: "title startAt endAt venueId",
+        populate: {
+          path: "venueId",
+          select: "name address",
+        },
+      });
+
+      if (bookingForEmail) {
+        try {
+          await sendBookingCancellationEmail(
+            user.email,
+            bookingForEmail
+          );
+        } catch (emailError) {
+          console.error(
+            "BOOKING CANCELLATION EMAIL ERROR:",
+            emailError
+          );
+        }
+      }
+    }
+
     return booking;
   } catch (error) {
     await session.abortTransaction();
@@ -200,10 +273,9 @@ export async function cancelBooking(
 }
 
 
-
 //get events bookings
 
- export async function getEventBookings(
+export async function getEventBookings(
   eventId: string,
   organizerId: string
 ) {
@@ -222,16 +294,17 @@ export async function cancelBooking(
   const bookings = await Booking.find({
     eventId,
   })
-.populate("userId", "firstName lastName email")
+    .populate("userId", "firstName lastName email")
     .sort({ createdAt: -1 });
 
-return {
-  event: {
-    _id: event._id,
-    title: event.title,
-  },
-  bookings,
-};}
+  return {
+    event: {
+      _id: event._id,
+      title: event.title,
+    },
+    bookings,
+  };
+}
 
 
 
@@ -267,35 +340,6 @@ export async function getBookingById(
     qrCode,
   };
 }
-
-// export async function getBookingById(
-//   userId: string,
-//   bookingId: string
-// ) {
-//   const booking = await Booking.findOne({
-//     _id: bookingId,
-//     userId,
-//   }).populate({
-//     path: "eventId",
-//     select: "title startAt endAt venueId",
-//     populate: {
-//       path: "venueId",
-//       select: "name address",
-//     },
-//   });
-
-//   if (!booking) {
-//     throw new AppError(
-//       "Booking not found",
-//       404
-//     );
-//   }
-
-//   return booking;
-// }
-
-
-
 
 
 /*
