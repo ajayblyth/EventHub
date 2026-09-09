@@ -15,7 +15,7 @@ import EditEventPage from "../pages/events/EditEventPage";
 import CheckoutPage from "../pages/booking/CheckoutPage";
 import MyBookingsPage from "../pages/booking/MyBookingsPage";
 import TicketDetailsPage from "../pages/booking/TicketDetailsPage";
-import FakePaymentPage from "../pages/booking/FakePaymentPage";
+import FakePaymentPage from "../pages/booking/PaymentPage";
 import EventAttendeesPage from "../pages/organizer/EventAttendeesPage";
 import VerifyEmailPage from "../pages/auth/VerifyEmailPage";
 

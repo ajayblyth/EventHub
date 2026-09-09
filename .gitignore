@@ -1,8 +1,10 @@
 node_modules/
-.env
 dist/
 build/
 .vite/
 coverage/
 misc/
 links
+.env
+.env.*
+!.env.example

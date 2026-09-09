@@ -1,9 +1,8 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import api from "../../api/axios";
 
-function FakePaymentPage() {
+function PaymentPage() {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const {
     eventId,
@@ -30,23 +29,65 @@ function FakePaymentPage() {
 
   const handlePayment = async () => {
     try {
-      const response = await api.post("/bookings", {
-        eventId,
-        tickets: tickets.map((ticket: any) => ({
-          ticketTierId: ticket.ticketTierId,
-          quantity: ticket.quantity,
-        })),
-      });
+      // 1. Create Razorpay order on backend
+      const response = await api.post(
+        "/payments/create-order",
+  {
+  eventId,
+  tickets: tickets.map((ticket: any) => ({
+    ticketTierId: ticket.ticketTierId,
+    quantity: ticket.quantity,
+  })),
+}
+      );
 
-      console.log("Payment successful:", response.data);
+      const { orderId, amount, currency } = response.data;
 
-      navigate("/my-bookings");
+      // 2. Configure Razorpay Checkout
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount,
+        currency,
+        name: "EventHub",
+        description: `Ticket booking for ${eventTitle}`,
+        order_id: orderId,
+
+        handler: function (paymentResponse: {
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          razorpay_signature: string;
+        }) {
+          console.log(
+            "Razorpay payment successful:",
+            paymentResponse
+          );
+
+          console.log("Event ID:", eventId);
+          console.log("Tickets:", tickets);
+
+          alert("Test payment successful!");
+        },
+
+        theme: {
+          color: "#7c3aed",
+        },
+      };
+
+      // 3. Open Razorpay Checkout
+      const Razorpay = (window as any).Razorpay;
+
+      const razorpay = new Razorpay(options);
+
+      razorpay.open();
     } catch (error: any) {
-      console.error("Payment failed:", error);
+      console.error(
+        "Razorpay payment error:",
+        error
+      );
 
       alert(
         error.response?.data?.message ||
-          "Payment failed"
+        "Unable to start payment"
       );
     }
   };
@@ -74,41 +115,10 @@ function FakePaymentPage() {
         </div>
 
         <div className="mt-6">
-          <label className="block text-sm font-medium text-brand-900">
-            Card Number
-          </label>
-
-          <input
-            type="text"
-            placeholder="4242 4242 4242 4242"
-            className="mt-2 w-full rounded-lg border border-brand-100 px-4 py-3 outline-none focus:border-brand-500"
-          />
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-brand-900">
-              Expiry
-            </label>
-
-            <input
-              type="text"
-              placeholder="12/30"
-              className="mt-2 w-full rounded-lg border border-brand-100 px-4 py-3 outline-none focus:border-brand-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-brand-900">
-              CVV
-            </label>
-
-            <input
-              type="text"
-              placeholder="123"
-              className="mt-2 w-full rounded-lg border border-brand-100 px-4 py-3 outline-none focus:border-brand-500"
-            />
-          </div>
+          <p className="text-sm text-brand-600">
+            You will be redirected to Razorpay's secure
+            checkout to complete your payment.
+          </p>
         </div>
 
         <button
@@ -124,4 +134,4 @@ function FakePaymentPage() {
   );
 }
 
-export default FakePaymentPage;
+export default PaymentPage;
