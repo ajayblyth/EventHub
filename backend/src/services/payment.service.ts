@@ -50,3 +50,13 @@ export async function fetchRazorpayOrder(
 
   return order;
 }
+
+
+export async function refundRazorpayPayment(
+  paymentId: string,
+  amount: number
+) {
+  return await razorpay.payments.refund(paymentId, {
+    amount: Math.round(amount * 100),
+  });
+}

@@ -1,12 +1,36 @@
 import mongoose from "mongoose";
 import Event from "../models/Event.js";
 import Booking from "../models/Booking.js";
+import Payment from "../models/Payment.js";
 import AppError from "../utils/AppError.js";
 import { generateBookingQrCode } from "../utils/qrCode.js";
+import { generateTicketPdf } from "../utils/ticketPdf.js";
 import User from "../models/User.js";
+  import { refundRazorpayPayment } from "./payment.service.js";
+
 import {
   sendBookingConfirmationEmail,
   sendBookingCancellationEmail, } from "../utils/email.js";
+
+
+
+  function pdfToBuffer(pdf: any): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+
+    pdf.on("data", (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+
+    pdf.on("end", () => {
+      resolve(Buffer.concat(chunks));
+    });
+
+    pdf.on("error", (error: Error) => {
+      reject(error);
+    });
+  });
+}
 
 
 // createBooking
@@ -138,19 +162,33 @@ export async function createBooking(
         },
       });
 
-      if (bookingForEmail) {
-        try {
-          await sendBookingConfirmationEmail(
-            user.email,
-            bookingForEmail
-          );
-        } catch (emailError) {
-          console.error(
-            "BOOKING CONFIRMATION EMAIL ERROR:",
-            emailError
-          );
-        }
-      }
+
+
+if (bookingForEmail) {
+  try {
+
+    const pdf = await generateTicketPdf(
+      bookingForEmail
+    );
+
+    const pdfBuffer = await pdfToBuffer(pdf);
+
+ 
+
+    await sendBookingConfirmationEmail(
+      user.email,
+      bookingForEmail,
+      pdfBuffer
+    );
+  } catch (emailError) {
+    console.error(
+      "BOOKING CONFIRMATION EMAIL ERROR:",
+      emailError
+    );
+  }
+}
+
+
     }
 
     return booking;
@@ -189,23 +227,56 @@ export async function cancelBooking(
   userId: string,
   bookingId: string
 ) {
+  // 1. Find the confirmed booking
+
+  const booking = await Booking.findOne({
+    _id: bookingId,
+    userId,
+    status: "CONFIRMED",
+  });
+
+  if (!booking) {
+    throw new AppError(
+      "Booking not found or already cancelled",
+      404
+    );
+  }
+
+
+  // 2. Find the successful payment
+
+  const payment = await Payment.findOne({
+    bookingId: booking._id,
+    userId,
+    status: "PAID",
+  });
+
+  if (!payment) {
+    throw new AppError(
+      "Paid payment not found for this booking",
+      404
+    );
+  }
+
+
+  // --------------------------------------------
+  // 3. Refund through Razorpay
+  // --------------------------------------------
+
+  await refundRazorpayPayment(
+    payment.razorpayPaymentId,
+    payment.amount
+  );
+
+
+  // --------------------------------------------
+  // 4. Restore inventory + cancel booking
+  // --------------------------------------------
+
   const session = await mongoose.startSession();
 
   try {
     session.startTransaction();
-
-    const booking = await Booking.findOne({
-      _id: bookingId,
-      userId,
-      status: "CONFIRMED",
-    }).session(session);
-
-    if (!booking) {
-      throw new AppError(
-        "Booking not found or already cancelled",
-        404
-      );
-    }
 
     const event = await Event.findById(
       booking.eventId
@@ -229,47 +300,57 @@ export async function cancelBooking(
 
     booking.status = "CANCELLED";
 
+    payment.status = "REFUNDED";
+
     await event.save({ session });
     await booking.save({ session });
+    await payment.save({ session });
 
     await session.commitTransaction();
 
-    const user = await User.findById(userId);
-
-    if (user) {
-      const bookingForEmail = await Booking.findById(
-        booking._id.toString()
-      ).populate({
-        path: "eventId",
-        select: "title startAt endAt venueId",
-        populate: {
-          path: "venueId",
-          select: "name address",
-        },
-      });
-
-      if (bookingForEmail) {
-        try {
-          await sendBookingCancellationEmail(
-            user.email,
-            bookingForEmail
-          );
-        } catch (emailError) {
-          console.error(
-            "BOOKING CANCELLATION EMAIL ERROR:",
-            emailError
-          );
-        }
-      }
-    }
-
-    return booking;
   } catch (error) {
     await session.abortTransaction();
     throw error;
+
   } finally {
     await session.endSession();
   }
+
+
+  // --------------------------------------------
+  // 5. Send cancellation email
+  // --------------------------------------------
+
+  const user = await User.findById(userId);
+
+  if (user) {
+    const bookingForEmail = await Booking.findById(
+      booking._id.toString()
+    ).populate({
+      path: "eventId",
+      select: "title startAt endAt venueId",
+      populate: {
+        path: "venueId",
+        select: "name address",
+      },
+    });
+
+    if (bookingForEmail) {
+      try {
+        await sendBookingCancellationEmail(
+          user.email,
+          bookingForEmail
+        );
+      } catch (emailError) {
+        console.error(
+          "BOOKING CANCELLATION EMAIL ERROR:",
+          emailError
+        );
+      }
+    }
+  }
+
+  return booking;
 }
 
 

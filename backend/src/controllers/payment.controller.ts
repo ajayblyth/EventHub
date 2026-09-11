@@ -9,8 +9,9 @@ import {
 import { createBooking } from "../services/booking.service.js";
 
 import Event from "../models/Event.js";
-
+import Payment from "../models/Payment.js";
 import AppError from "../utils/AppError.js";
+
 
 
 // ======================================================
@@ -337,28 +338,47 @@ export async function verifyPaymentController(
     // ==================================================
     // STEP F: CREATE BOOKING
     // ==================================================
+const booking = await createBooking(
+  req.user!.userId,
+  eventId,
+  tickets
+);
 
-    const booking = await createBooking(
-      req.user!._id.toString(),
-      eventId,
-      tickets
-    );
+// ==================================================
+// STEP G: CREATE PAYMENT RECORD
+// ==================================================
 
+const payment = await Payment.create({
+  userId: req.user!.userId,
+  eventId,
+  bookingId: booking._id,
 
-    // ==================================================
-    // STEP G: SEND SUCCESS RESPONSE
-    // ==================================================
+  razorpayOrderId: razorpay_order_id,
+  razorpayPaymentId: razorpay_payment_id,
+  razorpaySignature: razorpay_signature,
 
-    res.status(200).json({
-      success: true,
+  amount: expectedAmount,
+  currency: "INR",
 
-      message:
-        "Payment verified and booking confirmed",
+  status: "PAID",
+});
 
-      booking,
-    });
+// ==================================================
+// STEP H: SEND SUCCESS RESPONSE
+// ==================================================
 
-  } catch (error) {
-    next(error);
-  }
+res.status(200).json({
+  success: true,
+
+  message:
+    "Payment verified and booking confirmed",
+
+  booking,
+  payment,
+});
+
+} catch (error) {
+  next(error);
+}
+
 }

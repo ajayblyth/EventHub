@@ -104,22 +104,17 @@ export async function getBookingByIdController(
   try {
     const userId = req.user!.userId;
 
-    const booking = await getBookingById(
+    const result = await getBookingById(
       userId,
       req.params.id as string
     );
 
-   const result = await getBookingById(
-  userId,
-  req.params.id as string
-);
-
-res.status(200).json(result);
-
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
 }
+
 
 //download pdf for tickrt
 

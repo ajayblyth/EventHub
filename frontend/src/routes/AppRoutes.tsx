@@ -15,7 +15,8 @@ import EditEventPage from "../pages/events/EditEventPage";
 import CheckoutPage from "../pages/booking/CheckoutPage";
 import MyBookingsPage from "../pages/booking/MyBookingsPage";
 import TicketDetailsPage from "../pages/booking/TicketDetailsPage";
-import FakePaymentPage from "../pages/booking/PaymentPage";
+import PaymentPage from "../pages/booking/PaymentPage";
+import BookingSuccessPage from "../pages/booking/BookingSuccessPage";
 import EventAttendeesPage from "../pages/organizer/EventAttendeesPage";
 import VerifyEmailPage from "../pages/auth/VerifyEmailPage";
 
@@ -80,7 +81,11 @@ function AppRoutes() {
 
           <Route
             path="/payment"
-            element={<FakePaymentPage />}
+            element={<PaymentPage />}
+          />
+          <Route
+            path="/booking-success"
+            element={<BookingSuccessPage />}
           />
 
           <Route
