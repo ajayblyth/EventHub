@@ -1,23 +1,42 @@
 import { Router } from "express";
+
 import validate from "../middleware/validate.js";
-import { registerSchema, loginSchema } from "../validators/auth.validator.js";
-import { register, login, getMe,  
-  refreshToken, logout, becomeOrganizerController,
-verifyEmailController }
- from "../controllers/auth.controller.js";
+
+import {
+  registerSchema,
+  loginSchema,
+} from "../validators/auth.validator.js";
+
+import {
+  register,
+  login,
+  getMe,
+  refreshToken,
+  logout,
+  verifyEmailOtpController,
+} from "../controllers/auth.controller.js";
 
 import { protect } from "../middleware/auth.js";
 import { authorize } from "../middleware/authorize.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
 
-
 const router = Router();
 
+// Get currently logged-in user
+router.get(
+  "/me",
+  protect,
+  getMe
+);
 
-router.get("/me", protect, getMe);
+// Register
+router.post(
+  "/register",
+  validate(registerSchema),
+  register
+);
 
-router.post( "/register", validate(registerSchema), register);
-
+// Login
 router.post(
   "/login",
   authRateLimiter,
@@ -25,15 +44,20 @@ router.post(
   login
 );
 
+// Refresh access token
 router.post(
   "/refresh-token",
   authRateLimiter,
   refreshToken
 );
 
+// Logout
+router.post(
+  "/logout",
+  logout
+);
 
-router.post("/logout", logout);
-
+// Organizer-only test route
 router.get(
   "/organizer-test",
   protect,
@@ -46,16 +70,11 @@ router.get(
   }
 );
 
+// Verify email using OTP
 router.post(
-  "/become-organizer",
+  "/verify-email-otp",
   protect,
-  becomeOrganizerController
-);
-
-
-router.get(
-  "/verify-email",
-  verifyEmailController
+  verifyEmailOtpController
 );
 
 export default router;

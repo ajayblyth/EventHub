@@ -284,7 +284,6 @@ const addTicketTier = () => {
   };
 
 
-  
 const handlePublish = async () => {
   if (!createdEventId) return;
 
@@ -297,14 +296,24 @@ const handlePublish = async () => {
   } catch (error: any) {
     console.error(error);
 
-    toast.error(
+    const message =
       error.response?.data?.message ||
-        "Failed to publish event"
-    );
+      "Failed to publish event";
+
+    if (
+      error.response?.status === 403 &&
+      message.toLowerCase().includes("verification")
+    ) {
+      navigate(
+        `/verify-email?eventId=${createdEventId}`
+      );
+
+      return;
+    }
+
+    toast.error(message);
   }
 };
-
- 
 
   return (
     <section className="min-h-screen bg-brand-50 px-6 py-12">

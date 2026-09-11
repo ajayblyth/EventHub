@@ -1,29 +1,49 @@
-import { Resend } from "resend";
+import {
+  SESClient,
+  SendEmailCommand,
+} from "@aws-sdk/client-ses";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const ses = new SESClient({
+  region: process.env.AWS_REGION!,
+});
 
 export async function sendEmail(
   to: string,
   subject: string,
   html: string
 ) {
-  const { data, error } = await resend.emails.send({
-    from: "EventHub <onboarding@resend.dev>",
-    to,
-    subject,
-    html,
+  const command = new SendEmailCommand({
+    Source: process.env.SES_FROM_EMAIL!,
+    Destination: {
+      ToAddresses: [to],
+    },
+    Message: {
+      Subject: {
+        Data: subject,
+        Charset: "UTF-8",
+      },
+      Body: {
+        Html: {
+          Data: html,
+          Charset: "UTF-8",
+        },
+      },
+    },
   });
 
-  if (error) {
-    console.error("RESEND EMAIL ERROR:", error);
-    throw new Error(`Failed to send email: ${error.message}`);
-  }
+  try {
+    const result = await ses.send(command);
 
-  return data;
+    console.log("SES EMAIL SENT:", result.MessageId);
+
+    return result;
+  } catch (error) {
+    console.error("SES EMAIL ERROR:", error);
+    throw new Error("Failed to send email");
+  }
 }
 
-
-//booking email 
+// Booking confirmation email
 export async function sendBookingConfirmationEmail(
   to: string,
   booking: any
@@ -133,8 +153,7 @@ export async function sendBookingConfirmationEmail(
   );
 }
 
-
-//email for cancellation
+// Booking cancellation email
 export async function sendBookingCancellationEmail(
   to: string,
   booking: any

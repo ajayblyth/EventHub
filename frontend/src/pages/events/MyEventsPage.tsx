@@ -19,28 +19,49 @@ function MyEventsPage() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const { events, isLoading, error } = useSelector(
-    (state: RootState) => state.events
-  );
+const { events, isLoading, error } = useSelector(
+  (state: RootState) => state.events
+);
+
+const user = useSelector(
+  (state: RootState) => state.auth.user
+);
+
+const isOrganizer =
+  user?.roles.includes("organizer") ?? false;
+  
 
   useEffect(() => {
     dispatch(fetchMyEvents());
   }, [dispatch]);
 
-  const handlePublish = async (id: string) => {
-    try {
-      await publishEvent(id);
 
-      toast.success("Event published successfully!");
+  //publish
 
-      dispatch(fetchMyEvents());
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to publish event"
-      );
+const handlePublish = async (id: string) => {
+  try {
+    await publishEvent(id);
+
+    toast.success("Event published successfully!");
+
+    dispatch(fetchMyEvents());
+  } catch (error: any) {
+    const message =
+      error.response?.data?.message ||
+      "Failed to publish event";
+
+    if (
+      error.response?.status === 403 &&
+      message.toLowerCase().includes("verification")
+    ) {
+      navigate(`/verify-email?eventId=${id}`);
+
+      return;
     }
-  };
+
+    toast.error(message);
+  }
+};
 
   const handleDelete = async (id: string) => {
     const confirmed = window.confirm(
@@ -241,78 +262,81 @@ return (
   </div>
 </div>
 
-              {/* Actions */}
-              <div className="mt-5 flex flex-wrap gap-2">
+       {/* Actions */}
+<div className="mt-5 flex flex-wrap gap-2">
 
-                {/* Edit */}
-                {(event.status === "DRAFT" ||
-                  event.status === "PUBLISHED") && (
-                  <button
-                    onClick={() =>
-                      navigate(
-                        `/events/${event._id}/edit`
-                      )
-                    }
-                    className="rounded-lg border border-brand-200
-                               px-3 py-2 text-sm font-semibold
-                               text-brand-800 hover:bg-brand-50"
-                  >
-                    Edit
-                  </button>
-                )}
-
-                {/* Publish */}
-                {event.status === "DRAFT" && (
-                  <button
-                    onClick={() =>
-                      handlePublish(event._id)
-                    }
-                    className="rounded-lg bg-brand-500
-                               px-3 py-2 text-sm font-semibold
-                               text-white hover:bg-brand-600"
-                  >
-                    Publish
-                  </button>
-                )}
-
-                {/* Delete */}
-              {(event.status === "DRAFT" ||
-  event.status === "PUBLISHED") &&
-  (totalSold > 0 ? (
+  {/* Edit */}
+  {(event.status === "DRAFT" ||
+    (event.status === "PUBLISHED" && isOrganizer)) && (
     <button
       onClick={() =>
-        handleCancel(event._id)
+        navigate(`/events/${event._id}/edit`)
       }
-      className="rounded-lg border border-red-200
+      className="rounded-lg border border-brand-200
                  px-3 py-2 text-sm font-semibold
-                 text-red-600 hover:bg-red-50"
+                 text-brand-800 hover:bg-brand-50"
     >
-      Cancel Event
+      Edit
     </button>
-  ) : (
+  )}
+
+  {/* Publish */}
+  {event.status === "DRAFT" && (
     <button
       onClick={() =>
-        handleDelete(event._id)
+        handlePublish(event._id)
       }
-      className="rounded-lg border border-red-200
+      className="rounded-lg bg-brand-500
                  px-3 py-2 text-sm font-semibold
-                 text-red-600 hover:bg-red-50"
+                 text-white hover:bg-brand-600"
     >
-      Delete
+      Publish
     </button>
-  ))}
+  )}
 
-                {/* Attendees */}
-                <Link
-                  to={`/organizer/events/${event._id}/attendees`}
-                  className="rounded-lg bg-brand-500
-                             px-3 py-2 text-sm font-semibold
-                             text-white hover:bg-brand-600"
-                >
-                  Attendees
-                </Link>
+  {/* Organizer-only actions */}
+  {isOrganizer && (
+    <>
+      {/* Cancel / Delete */}
+      {(event.status === "DRAFT" ||
+        event.status === "PUBLISHED") &&
+        (totalSold > 0 ? (
+          <button
+            onClick={() =>
+              handleCancel(event._id)
+            }
+            className="rounded-lg border border-red-200
+                       px-3 py-2 text-sm font-semibold
+                       text-red-600 hover:bg-red-50"
+          >
+            Cancel Event
+          </button>
+        ) : (
+          <button
+            onClick={() =>
+              handleDelete(event._id)
+            }
+            className="rounded-lg border border-red-200
+                       px-3 py-2 text-sm font-semibold
+                       text-red-600 hover:bg-red-50"
+          >
+            Delete
+          </button>
+        ))}
 
-              </div>
+      {/* Attendees */}
+      <Link
+        to={`/organizer/events/${event._id}/attendees`}
+        className="rounded-lg bg-brand-500
+                   px-3 py-2 text-sm font-semibold
+                   text-white hover:bg-brand-600"
+      >
+        Attendees
+      </Link>
+    </>
+  )}
+
+</div>
             </div>
           );
         })}
