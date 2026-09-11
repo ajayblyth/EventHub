@@ -193,3 +193,32 @@ Booking → CANCELLED
 Payment → REFUNDED
    ↓
 Cancellation email
+
+========
+Browse Event
+   ↓
+Select Tickets
+   ↓
+Razorpay Test Payment
+   ↓
+Payment = PAID
+   ↓
+Booking = CONFIRMED
+   ↓
+Inventory decreases
+   ↓
+Confirmation Email + PDF + QR
+   ↓
+My Bookings / View Ticket / Download PDF
+   ↓
+Cancel Booking
+   ↓
+Razorpay Test Refund
+   ↓
+Payment = REFUNDED
+   ↓
+Booking = CANCELLED
+   ↓
+Inventory restored
+   ↓
+Cancellation + Refund Email

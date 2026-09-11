@@ -12,6 +12,23 @@ function Navbar() {
   const location = useLocation();
 
   const [search, setSearch] = useState("");
+const [userCity, setUserCity] = useState("Detecting...");
+useEffect(() => {
+  const detectLocation = async () => {
+    try {
+      const response = await fetch("https://ipapi.co/json/");
+      const data = await response.json();
+
+      setUserCity(data.city || "Select location");
+    } catch (error) {
+      console.error("Failed to detect location:", error);
+      setUserCity("Select location");
+    }
+  };
+
+  detectLocation();
+}, []);
+
 
   const [categories, setCategories] = useState<any[]>([]);
 
@@ -79,9 +96,11 @@ const handleCreateEvent = () => {
   navigate("/events/create");
 };
 
+
+
   return (
     <header className="relative z-50 border-b border-brand-100 bg-white">
-<nav className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-6">
+<nav className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-6">
         {/* Logo */}
         <div className="shrink-0">
           <Link
@@ -151,16 +170,17 @@ const handleCreateEvent = () => {
             </div>
 
             {/* Location */}
-            <button
-              type="button"
-              className="whitespace-nowrap rounded-lg
-                         px-3 py-2 text-brand-900
-                         transition-colors
-                         hover:bg-brand-50
-                         hover:text-brand-700"
-            >
-              📍 Bangalore
-            </button>
+<button
+  type="button"
+  onClick={() => navigate(`/?location=${encodeURIComponent(userCity)}`)}
+  className="whitespace-nowrap rounded-lg 
+             px-3 py-2 text-brand-900 
+             transition-colors 
+             hover:bg-brand-50 
+             hover:text-brand-700"
+>
+  📍 {userCity}
+</button>
 
             {/* Create Event */}
             <button
