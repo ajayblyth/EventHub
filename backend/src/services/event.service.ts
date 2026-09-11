@@ -2,8 +2,9 @@ import Event from "../models/Event.js";
 import AppError from "../utils/AppError.js";
 
 import User from "../models/User.js";
-import { generateVerificationToken } from "../utils/verificationToken.js";
-import { sendEmail } from "../utils/email.js";
+import {
+  sendVerificationOtp,
+} from "./emailVerification.service.js";
 
 export async function createEvent(
   data: any, //need to change
@@ -236,47 +237,27 @@ export async function publishEvent(
     throw new AppError("User not found", 404);
   }
 
+  // Email verification is required before publishing
   if (!user.isVerified) {
-    const { token, hashedToken } = generateVerificationToken();
-
-    user.verificationToken = hashedToken;
-    user.verificationTokenExpires = new Date(
-      Date.now() + 24 * 60 * 60 * 1000
-    );
-
-    await user.save();
-
-const verificationUrl =
-  `http://localhost:5173/verify-email?token=${token}&eventId=${event._id}`;
-  
-  await sendEmail(
-      user.email,
-      "Verify your email to publish your EventHub event",
-      `
-        <h2>Verify your email</h2>
-
-        <p>
-          Please verify your email address before publishing your event on EventHub.
-        </p>
-
-        <p>
-          <a href="${verificationUrl}">
-            Verify Email
-          </a>
-        </p>
-
-        <p>This link will expire in 24 hours.</p>
-      `
+    await sendVerificationOtp(
+      user._id.toString(),
+      user.email
     );
 
     throw new AppError(
-      "Please verify your email before publishing your event. A verification email has been sent.",
+      "Please verify your email before publishing your EventHub event. A verification OTP has been sent to your email.",
       403
     );
   }
 
-  event.status = "PUBLISHED";
+  // User is verified, so give them organizer role
+  if (!user.roles.includes("organizer")) {
+    user.roles.push("organizer");
+    await user.save();
+  }
 
+  // Publish the event
+  event.status = "PUBLISHED";
   await event.save();
 
   return event;

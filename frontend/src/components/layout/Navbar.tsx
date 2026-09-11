@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";import {
 } from "react-router-dom";
 import AuthButtons from "./AuthButtons";
 import { getCategories } from "../../api/category.api";
-import { becomeOrganizer } from "../../api/auth.api";
 
 
 function Navbar() {
@@ -76,14 +75,8 @@ function Navbar() {
   };
 
 
-  const handleCreateEvent = async () => {
-  try {
-    await becomeOrganizer();
-
-    navigate("/events/create");
-  } catch (error) {
-    console.error("Failed to enable organizer access:", error);
-  }
+const handleCreateEvent = () => {
+  navigate("/events/create");
 };
 
   return (

@@ -34,13 +34,6 @@ export const logoutUser = async () => {
 
 
 
-export async function becomeOrganizer() {
-  const response = await api.post("/auth/become-organizer");
-
-  return response.data;
-}
-
-
 
 
 

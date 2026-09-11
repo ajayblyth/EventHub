@@ -8,18 +8,27 @@ import {
   deleteEventController,
   publishEventController,
   getMyEventsController,
-  getMyEventByIdController, cancelEventController
+  getMyEventByIdController,
+  cancelEventController,
 } from "../controllers/event.controller.js";
 
 import { protect } from "../middleware/auth.js";
 import { authorize } from "../middleware/authorize.js";
+
 import validate from "../middleware/validate.js";
 
-import { createEventSchema, updateEventSchema } from "../validators/event.validator.js";
+import {
+  createEventSchema,
+  updateEventSchema,
+} from "../validators/event.validator.js";
 
 const router = Router();
 
-router.get("/", getEventsController);
+router.get(
+  "/",
+  getEventsController
+);
+
 
 router.get(
   "/my-events",
@@ -27,19 +36,20 @@ router.get(
   getMyEventsController
 );
 
-
 router.get(
   "/manage/:id",
   protect,
   getMyEventByIdController
 );
 
+router.get(
+  "/:id",
+  getEventByIdController
+);
 
-router.get("/:id", getEventByIdController);
 router.post(
   "/",
   protect,
-  authorize("organizer"),
   validate(createEventSchema),
   createEventController
 );
@@ -47,7 +57,6 @@ router.post(
 router.patch(
   "/:id",
   protect,
-  authorize("organizer"),
   validate(updateEventSchema),
   updateEventController
 );
@@ -69,10 +78,8 @@ router.delete(
 router.post(
   "/:id/publish",
   protect,
-  authorize("organizer"),
   publishEventController
 );
-
 
 export default router;
 

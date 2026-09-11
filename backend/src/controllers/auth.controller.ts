@@ -1,10 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
-import { registerUser, loginUser, getCurrentUser , becomeOrganizer} from "../services/auth.service.js";
+import { registerUser, loginUser, getCurrentUser} from "../services/auth.service.js";
 import AppError from "../utils/AppError.js";
 import { refreshAccessToken } from "../services/auth.service.js";
-
-import { verifyEmail } from "../services/auth.service.js";
-
+import { verifyEmailOtp } from "../services/emailVerification.service.js";
+ 
 export async function register(
   req: Request,
   res: Response,
@@ -73,34 +72,6 @@ export async function login(
   }
 }
 
-
-
-export async function becomeOrganizerController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const result = await becomeOrganizer(req.user!.userId);
-
-    res
-      .cookie("accessToken", result.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: 15 * 60 * 1000,
-      })
-      .status(200)
-      .json({
-        success: true,
-        message: "Organizer access enabled",
-        data: result.user,
-      });
-  } catch (error) {
-    next(error);
-  }
-}
 
 
 export async function getMe(
@@ -184,19 +155,39 @@ export function logout(
   }
 }
 
-export async function verifyEmailController(
+export async function verifyEmailOtpController(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   try {
-    const token = req.query.token;
+    const { otp } = req.body;
 
-    if (typeof token !== "string" || !token) {
-      throw new AppError("Verification token is required", 400);
+    if (!otp) {
+      throw new AppError(
+        "OTP is required",
+        400
+      );
     }
 
-    await verifyEmail(token);
+    if (!/^\d{6}$/.test(otp)) {
+      throw new AppError(
+        "OTP must be 6 digits",
+        400
+      );
+    }
+
+    if (!req.user) {
+      throw new AppError(
+        "Authentication required",
+        401
+      );
+    }
+
+   await verifyEmailOtp(
+  req.user.userId,
+  otp
+);
 
     res.status(200).json({
       success: true,
@@ -206,7 +197,6 @@ export async function verifyEmailController(
     next(error);
   }
 }
-
 
 
 /*
